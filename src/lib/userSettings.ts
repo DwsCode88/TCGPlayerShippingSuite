@@ -4,12 +4,13 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 export interface UserSettings {
   easypostApiKey: string;
   logoUrl: string;
+  envelopeCost?: number;
+  defaultNonMachinable?: boolean;
 }
 
 export async function saveUserSettings(uid: string, settings: UserSettings) {
   await setDoc(doc(db, 'users', uid), settings, { merge: true });
 }
-
 
 export async function fetchUserSettings(uid: string): Promise<UserSettings | null> {
   const docSnap = await getDoc(doc(db, 'users', uid));
