@@ -7,8 +7,9 @@ export interface UserSettings {
 }
 
 export async function saveUserSettings(uid: string, settings: UserSettings) {
-  await setDoc(doc(db, 'users', uid), settings);
+  await setDoc(doc(db, 'users', uid), settings, { merge: true });
 }
+
 
 export async function fetchUserSettings(uid: string): Promise<UserSettings | null> {
   const docSnap = await getDoc(doc(db, 'users', uid));
