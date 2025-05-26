@@ -1,0 +1,52 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+.next/
+out/
+dist/
+coverage/
+
+# Vite
+.vite/
+*.local
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+storage-debug.log
+*.firebaserc
+
+# Firebase Emulator
+**/firestore-export/
+**/firebase-export/
+
+# Env files
+.env*
+!.env.example
+
+# Mac system files
+.DS_Store
+
+# Logs
+logs
+*.log
+
+# OS generated files
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Vercel
+.vercel/

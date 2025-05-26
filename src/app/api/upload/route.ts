@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/firebase';
-import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-
-const EASYPOST_API_KEY = process.env.EASYPOST_API_KEY || '';
-const AUTH_HEADER = `Basic ${Buffer.from(EASYPOST_API_KEY + ':').toString('base64')}`;
 
 export async function POST(req: NextRequest) {
   const orders = await req.json();
@@ -31,10 +28,22 @@ export async function POST(req: NextRequest) {
 
   for (const order of orders) {
     try {
+      const userRef = doc(db, 'users', order.userId);
+      const userSnap = await getDoc(userRef);
+      const userSettings = userSnap.exists() ? userSnap.data() : {};
+      const userApiKey = userSettings.easypostApiKey;
+
+      if (!userApiKey) {
+        console.warn(`❌ Missing API key for user ${order.userId}`);
+        continue;
+      }
+
+      const authHeader = `Basic ${Buffer.from(userApiKey + ':').toString('base64')}`;
+
       const createRes = await fetch('https://api.easypost.com/v2/shipments', {
         method: 'POST',
         headers: {
-          Authorization: AUTH_HEADER,
+          Authorization: authHeader,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -84,7 +93,7 @@ export async function POST(req: NextRequest) {
       const buyRes = await fetch(`https://api.easypost.com/v2/shipments/${shipment.id}/buy`, {
         method: 'POST',
         headers: {
-          Authorization: AUTH_HEADER,
+          Authorization: authHeader,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ rate }),
@@ -117,7 +126,7 @@ export async function POST(req: NextRequest) {
         totalCost,
         shippingShield: !!order.shippingShield,
         createdAt: Date.now(),
-        dashboardTimestamp: new Date().toISOString(), // ✅ New field for dashboard
+        dashboardTimestamp: new Date().toISOString(),
       });
 
       results.push({
