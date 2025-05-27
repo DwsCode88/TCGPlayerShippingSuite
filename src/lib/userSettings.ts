@@ -6,6 +6,13 @@ export interface UserSettings {
   logoUrl: string;
   envelopeCost?: number;
   defaultNonMachinable?: boolean;
+  fromAddress?: {
+    name: string;
+    street1: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
 }
 
 export async function saveUserSettings(uid: string, settings: UserSettings) {
