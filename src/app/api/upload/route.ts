@@ -38,6 +38,12 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      const fromAddress = userSettings.fromAddress;
+      if (!fromAddress) {
+        console.warn(`❌ Missing fromAddress for user ${order.userId}`);
+        continue;
+      }
+
       const authHeader = `Basic ${Buffer.from(userApiKey + ':').toString('base64')}`;
 
       const createRes = await fetch('https://api.easypost.com/v2/shipments', {
@@ -58,11 +64,11 @@ export async function POST(req: NextRequest) {
               country: 'US',
             },
             from_address: {
-              name: 'SpringedCards/VaultTrove',
-              street1: '411 1st st',
-              city: 'Inwood',
-              state: 'WV',
-              zip: '25428',
+              name: fromAddress.name,
+              street1: fromAddress.street1,
+              city: fromAddress.city,
+              state: fromAddress.state,
+              zip: fromAddress.zip,
               country: 'US',
             },
             parcel: {

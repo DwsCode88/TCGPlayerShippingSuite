@@ -1,4 +1,3 @@
-// src/app/layout.tsx
 'use client';
 
 import './globals.css';
@@ -10,10 +9,11 @@ import { auth } from '@/firebase';
 const links = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/upload', label: 'Upload Orders' },
+  { href: '/dashboard/history', label: 'History' }, // ✅ restored
   { href: '/dashboard/settings', label: 'Settings' },
 ];
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
