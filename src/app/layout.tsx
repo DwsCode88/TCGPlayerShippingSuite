@@ -1,54 +1,54 @@
+// src/app/layout.tsx
 'use client';
 
+import './globals.css';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/firebase';
-import '@/app/globals.css';
 
-const navLinks = [
+const links = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/upload', label: 'Upload Orders' },
-  { href: '/dashboard/history', label: 'History' },
   { href: '/dashboard/settings', label: 'Settings' },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/');
+  };
 
   return (
     <html lang="en">
-      <body className="min-h-screen flex bg-white text-black">
-        {/* Sidebar */}
-        <aside className="w-64 h-screen bg-[#0f172a] text-white p-4 space-y-4 flex flex-col justify-between">
-          <div>
-            <h1 className="text-xl font-bold mb-6 flex items-center gap-2">
-              📦 TCG Shipping
-            </h1>
-            <nav className="space-y-1">
-              {navLinks.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`block px-4 py-2 rounded hover:bg-slate-800 ${
-                    pathname === href ? 'bg-slate-700 font-semibold' : ''
-                  }`}
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
-          </div>
+      <body className="flex min-h-screen text-black bg-white">
+        <aside className="w-64 bg-gray-900 text-white p-4 space-y-4">
+          <h2 className="text-xl font-bold mb-4">📬 TCG Shipping</h2>
+          <nav className="space-y-2">
+            {links.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`block p-2 rounded hover:bg-gray-700 ${
+                  pathname === href ? 'bg-gray-800' : ''
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <hr className="my-4 border-gray-700" />
           <button
-            onClick={() => signOut(auth)}
-            className="bg-red-600 hover:bg-red-700 text-white w-full py-2 rounded text-sm font-bold"
+            onClick={handleSignOut}
+            className="w-full text-left p-2 bg-red-600 rounded hover:bg-red-700"
           >
-            Sign Out
+            🚪 Sign Out
           </button>
         </aside>
-
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 p-6">{children}</main>
       </body>
     </html>
   );

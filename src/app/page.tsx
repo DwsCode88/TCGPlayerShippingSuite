@@ -1,39 +1,35 @@
 'use client';
 
-import {
-  useSignInWithEmailAndPassword,
-  useCreateUserWithEmailAndPassword,
-  useSignInWithGoogle,
-  useAuthState
-} from 'react-firebase-hooks/auth';
-import { auth } from '@/firebase';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/firebase';
+import Link from 'next/link';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [createUserWithEmailAndPassword] = useCreateUserWithEmailAndPassword(auth);
-  const [signInWithEmailAndPassword] = useSignInWithEmailAndPassword(auth);
-  const [signInWithGoogle] = useSignInWithGoogle(auth);
-  const [user] = useAuthState(auth);
+export default function HomePage() {
+  const [user, loading] = useAuthState(auth);
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
+    if (user) router.push('/dashboard');
   }, [user]);
 
+  if (loading || user) return null;
+
   return (
-    <div className="max-w-md mx-auto p-6 space-y-4">
-      <h1 className="text-xl font-bold text-center">Sign In / Sign Up</h1>
-      <input className="w-full p-2 border" type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
-      <input className="w-full p-2 border" type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
-      <button className="w-full bg-blue-500 text-white p-2 rounded" onClick={() => signInWithEmailAndPassword(email, password)}>Sign In</button>
-      <button className="w-full bg-green-500 text-white p-2 rounded" onClick={() => createUserWithEmailAndPassword(email, password)}>Sign Up</button>
-      <hr />
-      <button className="w-full bg-red-500 text-white p-2 rounded" onClick={() => signInWithGoogle()}>Sign In with Google</button>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-6">
+      <h1 className="text-4xl font-bold mb-4">📬 TCG Shipping Assistant</h1>
+      <p className="text-center text-gray-300 mb-8">
+        Streamline your TCGplayer order fulfillment with smart USPS label generation.
+      </p>
+      <div className="flex gap-4">
+        <Link href="/login" className="bg-blue-600 px-6 py-3 rounded text-white font-semibold">
+          🔐 Login to Get Started
+        </Link>
+        <Link href="/dashboard/settings" className="bg-gray-700 px-6 py-3 rounded text-white font-semibold">
+          ⚙️ Preview Settings
+        </Link>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/firebase';
 
 const links = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -11,6 +13,12 @@ const links = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/');
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -30,14 +38,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
         <hr className="my-4 border-gray-700" />
-        <form action="/logout" method="POST">
-          <button
-            type="submit"
-            className="w-full text-left p-2 bg-red-600 rounded hover:bg-red-700"
-          >
-            Sign Out
-          </button>
-        </form>
+        <button
+          onClick={handleSignOut}
+          className="w-full text-left p-2 bg-red-600 rounded hover:bg-red-700"
+        >
+          🚪 Sign Out
+        </button>
       </aside>
       <main className="flex-1 p-6 bg-white text-black">{children}</main>
     </div>
