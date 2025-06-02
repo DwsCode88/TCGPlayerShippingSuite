@@ -77,17 +77,31 @@ export default function BatchSummaryPage() {
 
 const handleDownloadCSV = () => {
   const csv = [
-    ['Tracking #', 'Order #', 'Carrier'], // ✅ exact headers
-    ...orders.map((o) => [o.trackingCode, o.orderNumber, 'USPS']),
+    ['Order Number', 'Tracking Number', 'Carrier'],
+    ...orders.map((o) => [o.orderNumber, o.trackingCode, 'USPS']),
   ]
     .map((row) => row.map((v) => `"${v}"`).join(','))
     .join('\n');
 
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  }).replace(/ /g, '-'); // e.g., "Jun-02-2025"
+
+  const timeStr = now.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).replace(/:/g, '-'); // e.g., "7-21 PM"
+
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'tcgplayer-shipping.csv';
+  a.download = `Tcgtracking_${dateStr}_${timeStr}.csv`;
   a.click();
 };
 
