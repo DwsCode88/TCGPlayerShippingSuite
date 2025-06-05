@@ -77,7 +77,7 @@ export default function BatchSummaryPage() {
 
 const handleDownloadCSV = () => {
   const csv = [
-    ['Order #', 'Tracking Number', 'Carrier'],
+    ['Order #', 'Tracking #', 'Carrier'],
     ...orders.map((o) => [o.orderNumber, o.trackingCode, 'USPS']),
   ]
     .map((row) => row.map((v) => `"${v}"`).join(','))
