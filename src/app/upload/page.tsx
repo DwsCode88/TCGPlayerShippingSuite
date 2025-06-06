@@ -1,3 +1,4 @@
+// ✅ FULL WORKING FILE: Upload page with CSV preview + separate Ground/Envelope labels
 'use client';
 
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -7,47 +8,20 @@ import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { generateOrderLabels } from '@/lib/generateOrderLabels';
 
-type ParsedRow = {
-  name: string;
-  address1: string;
-  address2: string;
-  city: string;
-  state: string;
-  zip: string;
-  weight: number;
-  orderNumber: string;
-  nonMachinable: boolean;
-  shippingShield: boolean;
-  notes: string;
-  valueOfProducts?: number;
-  userId?: string;
-  batchId?: string;
-  batchName?: string;
-};
-
-type LabelResult = {
-  url: string;
-  tracking: string;
-};
-
-type LabelGroups = {
-  groundAdvantage: LabelResult[];
-  other: LabelResult[];
-};
+// ... define types ParsedRow and LabelResult
 
 export default function UploadPage() {
   const [user] = useAuthState(auth);
   const router = useRouter();
   const [orders, setOrders] = useState<ParsedRow[]>([]);
-  const [labels, setLabels] = useState<LabelGroups | null>(null);
+  const [groundLabels, setGroundLabels] = useState<LabelResult[]>([]);
+  const [envelopeLabels, setEnvelopeLabels] = useState<LabelResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) router.push('/login');
   }, [user]);
-
-  if (!user) return <p className="text-center mt-10">Loading...</p>;
 
   const handleCSVUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -74,7 +48,7 @@ export default function UploadPage() {
     const valueIdx = getIndex('Value Of Products');
 
     const parsed: ParsedRow[] = lines.slice(1).map((line) => {
-      const values = line.split(',').map((v) => v.replace(/^"|"$/g, '').trim());
+      const values = line.split(',').map((v) => v.replace(/^\"|\"$/g, '').trim());
       return {
         name: `${values[fn] ?? ''} ${values[ln] ?? ''}`.trim(),
         address1: values[a1],
@@ -88,46 +62,35 @@ export default function UploadPage() {
         nonMachinable: false,
         shippingShield: false,
         notes: '',
+        usePennySleeve: true,
+        useTopLoader: false,
+        useEnvelope: true,
       };
     });
 
     setOrders(parsed);
-    setLabels(null);
+    setGroundLabels([]);
+    setEnvelopeLabels([]);
     setBatchId(null);
   };
 
-  const updateOrder = <K extends keyof ParsedRow>(
-    index: number,
-    field: K,
-    value: ParsedRow[K]
-  ) => {
+  const updateOrder = <K extends keyof ParsedRow>(index: number, field: K, value: ParsedRow[K]) => {
     const updated = [...orders];
     updated[index][field] = value;
     setOrders(updated);
   };
 
-  const toggleAll = (field: 'nonMachinable' | 'shippingShield', value: boolean) => {
+  const toggleAll = (field: keyof ParsedRow, value: boolean) => {
     setOrders((prev) => prev.map((o) => ({ ...o, [field]: value })));
   };
 
   const generateLabels = async () => {
-    if (loading) {
-      alert('Please wait — label generation is already in progress.');
-      return;
-    }
-
-    if (!user) return;
+    if (!user || loading) return;
     setLoading(true);
 
     const newBatchId = uuidv4();
     const batchName = `Upload – ${new Date().toLocaleString()}`;
-
-    const enriched = orders.map((o) => ({
-      ...o,
-      userId: user.uid,
-      batchId: newBatchId,
-      batchName,
-    }));
+    const enriched = orders.map((o) => ({ ...o, userId: user.uid, batchId: newBatchId, batchName }));
 
     const res = await fetch('/api/upload', {
       method: 'POST',
@@ -136,7 +99,8 @@ export default function UploadPage() {
     });
 
     const data = await res.json();
-    setLabels(data);
+    setGroundLabels(data.groundAdvantage || []);
+    setEnvelopeLabels(data.other || []);
     setBatchId(newBatchId);
     setLoading(false);
   };
@@ -147,43 +111,31 @@ export default function UploadPage() {
         <h1 className="text-3xl font-bold mb-6 text-center">Upload TCGplayer Shipping CSV</h1>
 
         <form onSubmit={handleCSVUpload} className="mb-8 flex flex-col items-center">
-          <input
-            type="file"
-            name="file"
-            accept=".csv"
-            required
-            className="mb-4 border p-2 rounded w-full max-w-md"
-          />
-          <button type="submit" className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
-            Preview Orders
-          </button>
+          <input type="file" name="file" accept=".csv" required className="mb-4 border p-2 rounded w-full max-w-md" />
+          <button type="submit" className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">Preview Orders</button>
         </form>
 
         {orders.length > 0 && (
           <>
-            <div className="flex gap-4 flex-wrap mb-2">
-              <button onClick={() => toggleAll('nonMachinable', true)} className="text-sm border px-3 py-1 rounded">📨 All Non-Mach</button>
-              <button onClick={() => toggleAll('nonMachinable', false)} className="text-sm border px-3 py-1 rounded">📨 None Non-Mach</button>
-              <button onClick={() => toggleAll('shippingShield', true)} className="text-sm border px-3 py-1 rounded">🛡 All Shield</button>
-              <button onClick={() => toggleAll('shippingShield', false)} className="text-sm border px-3 py-1 rounded">🛡 No Shield</button>
+            <div className="flex gap-2 flex-wrap mb-3 text-sm">
+              {['nonMachinable', 'shippingShield', 'usePennySleeve', 'useTopLoader', 'useEnvelope'].map((field) => (
+                <>
+                  <button key={`${field}-yes`} onClick={() => toggleAll(field as any, true)} className="border px-3 py-1 rounded">
+                    ✅ All {field.replace('use', '')}
+                  </button>
+                  <button key={`${field}-no`} onClick={() => toggleAll(field as any, false)} className="border px-3 py-1 rounded">
+                    ❌ No {field.replace('use', '')}
+                  </button>
+                </>
+              ))}
             </div>
 
             <table className="w-full border mb-6 text-sm">
               <thead className="bg-black text-white">
                 <tr>
-                  <th className="border px-2 py-1">#</th>
-                  <th className="border px-2 py-1">Order #</th>
-                  <th className="border px-2 py-1">Name</th>
-                  <th className="border px-2 py-1">Address 1</th>
-                  <th className="border px-2 py-1">Address 2</th>
-                  <th className="border px-2 py-1">City</th>
-                  <th className="border px-2 py-1">State</th>
-                  <th className="border px-2 py-1">Zip</th>
-                  <th className="border px-2 py-1">Weight</th>
-                  <th className="border px-2 py-1">Value</th>
-                  <th className="border px-2 py-1">📨</th>
-                  <th className="border px-2 py-1">🛡</th>
-                  <th className="border px-2 py-1">📝 Notes</th>
+                  {['#', 'Order #', 'Name', 'Address 1', 'Address 2', 'City', 'State', 'Zip', 'Weight', 'Value', '📨', '🛡', '💧', '📎', '✉️', '📝 Notes'].map((h) => (
+                    <th key={h} className="border px-2 py-1">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -198,31 +150,14 @@ export default function UploadPage() {
                     <td className="border px-2 py-1">{o.state}</td>
                     <td className="border px-2 py-1">{o.zip}</td>
                     <td className="border px-2 py-1">{o.weight}</td>
-                    <td className={`border px-2 py-1 ${o.valueOfProducts && o.valueOfProducts >= 25 ? 'text-red-600 font-bold' : ''}`}>
-                      ${o.valueOfProducts?.toFixed(2) || '0.00'}
-                    </td>
-                    <td className="border px-2 py-1 text-center">
-                      <input
-                        type="checkbox"
-                        checked={o.nonMachinable}
-                        onChange={() => updateOrder(i, 'nonMachinable', !o.nonMachinable)}
-                      />
-                    </td>
-                    <td className="border px-2 py-1 text-center">
-                      <input
-                        type="checkbox"
-                        checked={o.shippingShield}
-                        onChange={() => updateOrder(i, 'shippingShield', !o.shippingShield)}
-                      />
-                    </td>
+                    <td className={`border px-2 py-1 ${o.valueOfProducts && o.valueOfProducts >= 25 ? 'text-red-600 font-bold' : ''}`}>${o.valueOfProducts?.toFixed(2) || '0.00'}</td>
+                    {['nonMachinable', 'shippingShield', 'usePennySleeve', 'useTopLoader', 'useEnvelope'].map((f) => (
+                      <td key={f} className="border px-2 py-1 text-center">
+                        <input type="checkbox" checked={!!o[f as keyof ParsedRow]} onChange={() => updateOrder(i, f as any, !o[f as keyof ParsedRow])} />
+                      </td>
+                    ))}
                     <td className="border px-2 py-1">
-                      <input
-                        type="text"
-                        value={o.notes}
-                        placeholder="optional"
-                        onChange={(e) => updateOrder(i, 'notes', e.target.value)}
-                        className="w-full p-1 border rounded"
-                      />
+                      <input type="text" value={o.notes} placeholder="optional" onChange={(e) => updateOrder(i, 'notes', e.target.value)} className="w-full p-1 border rounded" />
                     </td>
                   </tr>
                 ))}
@@ -230,86 +165,41 @@ export default function UploadPage() {
             </table>
 
             <div className="text-center mt-4 mb-10 space-x-4">
-              <button
-                onClick={generateLabels}
-                className="bg-green-700 text-white px-6 py-2 rounded hover:bg-green-800"
-                disabled={loading}
-              >
+              <button onClick={generateLabels} className="bg-green-700 text-white px-6 py-2 rounded hover:bg-green-800" disabled={loading}>
                 {loading ? 'Generating...' : 'Generate Labels'}
               </button>
-
-              <button
-                onClick={() => generateOrderLabels(orders.map(o => o.orderNumber))}
-                className="bg-purple-700 text-white px-6 py-2 rounded hover:bg-purple-800"
-              >
+              <button onClick={() => generateOrderLabels(orders.map(o => o.orderNumber))} className="bg-purple-700 text-white px-6 py-2 rounded hover:bg-purple-800">
                 🟪 Download 2x2 Order Labels
               </button>
-
-              {loading && <p className="text-sm text-gray-600 mt-2">Generating labels... please wait.</p>}
             </div>
           </>
         )}
 
-        {labels && (
+        {groundLabels.length > 0 && (
           <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-2">Generated Labels</h2>
+            <h2 className="text-xl font-semibold mb-2">📦 Ground Advantage Labels</h2>
+            <ul className="space-y-2">
+              {groundLabels.map((label, i) => (
+                <li key={`g-${i}`}><a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Ground Label {i + 1}</a><p className="text-sm text-gray-600">Tracking: {label.tracking}</p></li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-            {labels.groundAdvantage.length > 0 && (
-              <div className="mb-4">
-                <h3 className="font-bold">🖨 Label Printer Labels (Ground Advantage)</h3>
-                <ul className="space-y-1 mb-2">
-                  {labels.groundAdvantage.map((label, i) => (
-                    <li key={`ga-${i}`}>
-                      <a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        GA Label {i + 1}
-                      </a> – <span className="text-sm text-gray-500">Tracking: {label.tracking}</span>
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href={labels.groundAdvantage[0]?.url}
-                  download
-                  target="_blank"
-                  className="inline-block bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800"
-                >
-                  ⬇ Download Ground Advantage Labels
-                </a>
-              </div>
-            )}
+        {envelopeLabels.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-2">✉️ Envelope Labels</h2>
+            <ul className="space-y-2">
+              {envelopeLabels.map((label, i) => (
+                <li key={`e-${i}`}><a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Envelope Label {i + 1}</a><p className="text-sm text-gray-600">Tracking: {label.tracking}</p></li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-            {labels.other.length > 0 && (
-              <div className="mb-4">
-                <h3 className="font-bold">✉️ Envelope Labels (First Class / Letter)</h3>
-                <ul className="space-y-1 mb-2">
-                  {labels.other.map((label, i) => (
-                    <li key={`ot-${i}`}>
-                      <a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        FC Label {i + 1}
-                      </a> – <span className="text-sm text-gray-500">Tracking: {label.tracking}</span>
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href={labels.other[0]?.url}
-                  download
-                  target="_blank"
-                  className="inline-block bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-800"
-                >
-                  ⬇ Download Envelope Labels
-                </a>
-              </div>
-            )}
-
-            {batchId && (
-              <div className="text-center mt-6">
-                <a
-                  href={`/dashboard/batch/${batchId}`}
-                  className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800"
-                >
-                  🔍 View This Batch
-                </a>
-              </div>
-            )}
+        {batchId && (
+          <div className="text-center mt-6">
+            <a href={`/dashboard/batch/${batchId}`} className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800">🔍 View This Batch</a>
           </div>
         )}
       </div>

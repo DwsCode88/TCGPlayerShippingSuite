@@ -9,6 +9,12 @@ export default function SettingsForm({ user }: { user: any }) {
   const [easypostApiKey, setEasypostApiKey] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [envelopeCost, setEnvelopeCost] = useState(0.0);
+  const [shieldCost, setShieldCost] = useState(0.1);
+  const [pennySleeveCost, setPennySleeveCost] = useState(0.02);
+  const [topLoaderCost, setTopLoaderCost] = useState(0.12);
+  const [usePennySleeves, setUsePennySleeves] = useState(true);
+  const [useTopLoaders, setUseTopLoaders] = useState(true);
+  const [useShippingShield, setUseShippingShield] = useState(false);
   const [defaultNonMachinable, setDefaultNonMachinable] = useState(false);
   const [fromAddress, setFromAddress] = useState({
     name: '',
@@ -31,6 +37,12 @@ export default function SettingsForm({ user }: { user: any }) {
         setEasypostApiKey(settings.easypostApiKey || '');
         setLogoUrl(settings.logoUrl || '');
         setEnvelopeCost(settings.envelopeCost || 0.0);
+        setShieldCost(settings.shieldCost || 0.1);
+        setPennySleeveCost(settings.pennySleeveCost || 0.02);
+        setTopLoaderCost(settings.topLoaderCost || 0.12);
+        setUsePennySleeves(settings.usePennySleeves ?? true);
+        setUseTopLoaders(settings.useTopLoaders ?? true);
+        setUseShippingShield(settings.useShippingShield ?? false);
         setDefaultNonMachinable(settings.defaultNonMachinable || false);
         setFromAddress(settings.fromAddress || {
           name: '',
@@ -52,6 +64,12 @@ export default function SettingsForm({ user }: { user: any }) {
       easypostApiKey,
       logoUrl,
       envelopeCost,
+      shieldCost,
+      pennySleeveCost,
+      topLoaderCost,
+      usePennySleeves,
+      useTopLoaders,
+      useShippingShield,
       defaultNonMachinable,
       fromAddress,
     });
@@ -68,11 +86,7 @@ export default function SettingsForm({ user }: { user: any }) {
       });
 
       const data = await res.json();
-      if (data.success) {
-        setTestResult(data.message);
-      } else {
-        setTestResult(`❌ Invalid key: ${data.error}`);
-      }
+      setTestResult(data.success ? data.message : `❌ Invalid key: ${data.error}`);
     } catch (err) {
       setTestResult('❌ Network or server error.');
     }
@@ -150,29 +164,43 @@ export default function SettingsForm({ user }: { user: any }) {
         )}
       </div>
 
-      {/* Envelope Cost */}
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">Envelope Cost ($)</label>
-        <input
-          type="number"
-          min={0}
-          step={0.01}
-          value={envelopeCost}
-          onChange={(e) => setEnvelopeCost(parseFloat(e.target.value))}
-          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-        />
-      </div>
+      {/* Cost Inputs */}
+      {[
+        { label: 'Envelope Cost', value: envelopeCost, setter: setEnvelopeCost },
+        { label: 'Shipping Shield Cost', value: shieldCost, setter: setShieldCost },
+        { label: 'Penny Sleeve Cost', value: pennySleeveCost, setter: setPennySleeveCost },
+        { label: 'Top Loader Cost', value: topLoaderCost, setter: setTopLoaderCost },
+      ].map((field, i) => (
+        <div key={i}>
+          <label className="block text-sm text-gray-300 font-medium mb-1">{field.label} ($)</label>
+          <input
+            type="number"
+            min={0}
+            step={0.01}
+            value={field.value}
+            onChange={(e) => field.setter(parseFloat(e.target.value))}
+            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+          />
+        </div>
+      ))}
 
-      {/* Default Non-Machinable */}
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={defaultNonMachinable}
-          onChange={(e) => setDefaultNonMachinable(e.target.checked)}
-          className="w-4 h-4"
-        />
-        <label className="text-sm text-gray-300">Default to Non-Machinable</label>
-      </div>
+      {/* Toggles */}
+      {[
+        { label: 'Use Penny Sleeves', value: usePennySleeves, setter: setUsePennySleeves },
+        { label: 'Use Top Loaders', value: useTopLoaders, setter: setUseTopLoaders },
+        { label: 'Use Shipping Shield (default)', value: useShippingShield, setter: setUseShippingShield },
+        { label: 'Default to Non-Machinable', value: defaultNonMachinable, setter: setDefaultNonMachinable },
+      ].map((toggle, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={toggle.value}
+            onChange={(e) => toggle.setter(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <label className="text-sm text-gray-300">{toggle.label}</label>
+        </div>
+      ))}
 
       {/* From Address */}
       <div>

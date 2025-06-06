@@ -23,6 +23,8 @@ type Order = {
   labelCost: number;
   envelopeCost: number;
   shieldCost: number;
+  pennyCost: number;
+  loaderCost: number;
   totalCost: number;
   shippingShield: boolean;
   notes?: string;
@@ -67,44 +69,40 @@ export default function BatchSummaryPage() {
       return acc + (typeof value === 'number' ? value : 0);
     }, 0).toFixed(2);
 
-  const count = (field: keyof Order) =>
-    orders.filter((o) => !!o[field]).length;
-
   const debouncedSave = debounce(async (text: string) => {
     const batchRef = doc(db, 'batches', batchId);
     await updateDoc(batchRef, { notes: text });
   }, 1000);
 
-const handleDownloadCSV = () => {
-  const csv = [
-    ['Order #', 'Tracking #', 'Carrier'],
-    ...orders.map((o) => [o.orderNumber, o.trackingCode, 'USPS']),
-  ]
-    .map((row) => row.map((v) => `"${v}"`).join(','))
-    .join('\n');
+  const handleDownloadCSV = () => {
+    const csv = [
+      ['Order #', 'Tracking #', 'Carrier'],
+      ...orders.map((o) => [o.orderNumber, o.trackingCode, 'USPS']),
+    ]
+      .map((row) => row.map((v) => `"${v}"`).join(','))
+      .join('\n');
 
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  }).replace(/ /g, '-'); // e.g., "Jun-02-2025"
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+    }).replace(/ /g, '-');
 
-  const timeStr = now.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }).replace(/:/g, '-'); // e.g., "7-21 PM"
+    const timeStr = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).replace(/:/g, '-');
 
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Tcgtracking_${dateStr}_${timeStr}.csv`;
-  a.click();
-};
-
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Tcgtracking_${dateStr}_${timeStr}.csv`;
+    a.click();
+  };
 
   const handleDownloadPDF = async () => {
     const res = await fetch('/api/labels/merge', {
@@ -194,10 +192,11 @@ const handleDownloadCSV = () => {
                   <th className="p-3 text-left">Order #</th>
                   <th className="p-3 text-left">Name</th>
                   <th className="p-3 text-left">Tracking</th>
-                  <th className="p-3 text-left">🛡 Shield</th>
-                  <th className="p-3 text-left">💰 Postage</th>
+                  <th className="p-3 text-left">💧 Sleeve</th>
+                  <th className="p-3 text-left">📎 Loader</th>
                   <th className="p-3 text-left">✉️ Envelope</th>
                   <th className="p-3 text-left">🛡 Shield</th>
+                  <th className="p-3 text-left">💰 Postage</th>
                   <th className="p-3 text-left">🧾 Total</th>
                   <th className="p-3 text-left">📝 Notes</th>
                   <th className="p-3 text-left">Label</th>
@@ -209,11 +208,12 @@ const handleDownloadCSV = () => {
                     <td className="p-3">{o.orderNumber}</td>
                     <td className="p-3">{o.toName}</td>
                     <td className="p-3 text-xs text-gray-600">{o.trackingCode}</td>
-                    <td className="p-3 text-center">{o.shippingShield ? '✅' : '❌'}</td>
-                    <td className="p-3">${o.labelCost?.toFixed(2)}</td>
-                    <td className="p-3">${o.envelopeCost?.toFixed(2)}</td>
-                    <td className="p-3">${o.shieldCost?.toFixed(2)}</td>
-                    <td className="p-3 font-semibold">${o.totalCost?.toFixed(2)}</td>
+                    <td className="p-3">${o.pennyCost?.toFixed(2) || '0.00'}</td>
+                    <td className="p-3">${o.loaderCost?.toFixed(2) || '0.00'}</td>
+                    <td className="p-3">${o.envelopeCost?.toFixed(2) || '0.00'}</td>
+                    <td className="p-3">${o.shieldCost?.toFixed(2) || '0.00'}</td>
+                    <td className="p-3">${o.labelCost?.toFixed(2) || '0.00'}</td>
+                    <td className="p-3 font-semibold">${o.totalCost?.toFixed(2) || '0.00'}</td>
                     <td className="p-3 text-xs text-gray-600">{o.notes || ''}</td>
                     <td className="p-3">
                       <a
@@ -230,12 +230,14 @@ const handleDownloadCSV = () => {
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50 font-semibold">
-                  <td colSpan={4} className="p-3">Totals</td>
-                  <td className="p-3">${sum('labelCost')}</td>
+                  <td colSpan={3} className="p-3">Totals</td>
+                  <td className="p-3">${sum('pennyCost')}</td>
+                  <td className="p-3">${sum('loaderCost')}</td>
                   <td className="p-3">${sum('envelopeCost')}</td>
                   <td className="p-3">${sum('shieldCost')}</td>
+                  <td className="p-3">${sum('labelCost')}</td>
                   <td className="p-3">${sum('totalCost')}</td>
-                  <td colSpan={2} />
+                  <td colSpan={2}></td>
                 </tr>
               </tfoot>
             </table>

@@ -1,4 +1,3 @@
-// /api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/firebase';
 import { setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -143,10 +142,14 @@ export async function POST(req: NextRequest) {
       }
 
       const orderId = uuidv4();
+
+      const envelopeCost = order.useEnvelope === false ? 0 : (userSettings.envelopeCost || 0.10);
+      const shieldCost = order.shippingShield ? (userSettings.shieldCost || 0.10) : 0;
+      const pennyCost = order.usePennySleeve ? (userSettings.pennySleeveCost || 0.02) : 0;
+      const loaderCost = order.useTopLoader ? (userSettings.topLoaderCost || 0.12) : 0;
+
       const labelCost = parseFloat(rate?.rate || '0.63');
-      const envelopeCost = 0.10;
-      const shieldCost = order.shippingShield ? 0.10 : 0;
-      const totalCost = parseFloat((labelCost + envelopeCost + shieldCost).toFixed(2));
+      const totalCost = parseFloat((labelCost + envelopeCost + shieldCost + pennyCost + loaderCost).toFixed(2));
 
       await setDoc(doc(db, 'orders', orderId), {
         userId: order.userId || 'unknown',
@@ -159,6 +162,11 @@ export async function POST(req: NextRequest) {
         labelCost,
         envelopeCost,
         shieldCost,
+        pennyCost,
+        loaderCost,
+        usePennySleeve: order.usePennySleeve || false,
+        useTopLoader: order.useTopLoader || false,
+        useEnvelope: order.useEnvelope !== false,
         totalCost,
         shippingShield: !!order.shippingShield,
         createdAt: Date.now(),
