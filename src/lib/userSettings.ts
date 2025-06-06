@@ -1,10 +1,14 @@
-import { db } from '@/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/firebase';
 
-export interface UserSettings {
+export type UserSettings = {
   easypostApiKey: string;
-  logoUrl: string;
+  logoUrl?: string;
   envelopeCost?: number;
+  shieldCost?: number;
+  pennySleeveCost?: number;
+  topLoaderCost?: number;
+  usePennySleeves?: boolean;
   defaultNonMachinable?: boolean;
   fromAddress?: {
     name: string;
@@ -13,13 +17,25 @@ export interface UserSettings {
     state: string;
     zip: string;
   };
+};
+
+export async function fetchUserSettings(uid: string): Promise<UserSettings | null> {
+  try {
+    const ref = doc(db, 'users', uid);
+    const snap = await getDoc(ref);
+    return snap.exists() ? (snap.data() as UserSettings) : null;
+  } catch (error) {
+    console.error('Error fetching user settings:', error);
+    return null;
+  }
 }
 
 export async function saveUserSettings(uid: string, settings: UserSettings) {
-  await setDoc(doc(db, 'users', uid), settings, { merge: true });
-}
-
-export async function fetchUserSettings(uid: string): Promise<UserSettings | null> {
-  const docSnap = await getDoc(doc(db, 'users', uid));
-  return docSnap.exists() ? (docSnap.data() as UserSettings) : null;
+  try {
+    const ref = doc(db, 'users', uid);
+    await setDoc(ref, settings, { merge: true });
+  } catch (error) {
+    console.error('Error saving user settings:', error);
+    throw error;
+  }
 }
