@@ -1,4 +1,3 @@
-// ✅ FULL WORKING FILE: Upload page with CSV preview + separate Ground/Envelope labels
 'use client';
 
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -8,7 +7,31 @@ import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { generateOrderLabels } from '@/lib/generateOrderLabels';
 
-// ... define types ParsedRow and LabelResult
+type ParsedRow = {
+  name: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  zip: string;
+  weight: number;
+  orderNumber: string;
+  valueOfProducts: number;
+  nonMachinable: boolean;
+  shippingShield: boolean;
+  usePennySleeve: boolean;
+  useTopLoader: boolean;
+  useEnvelope: boolean;
+  notes: string;
+  userId?: string;
+  batchId?: string;
+  batchName?: string;
+};
+
+type LabelResult = {
+  url: string;
+  tracking: string;
+};
 
 export default function UploadPage() {
   const [user] = useAuthState(auth);
@@ -48,7 +71,7 @@ export default function UploadPage() {
     const valueIdx = getIndex('Value Of Products');
 
     const parsed: ParsedRow[] = lines.slice(1).map((line) => {
-      const values = line.split(',').map((v) => v.replace(/^\"|\"$/g, '').trim());
+      const values = line.split(',').map((v) => v.replace(/^"|"$/g, '').trim());
       return {
         name: `${values[fn] ?? ''} ${values[ln] ?? ''}`.trim(),
         address1: values[a1],
@@ -61,10 +84,10 @@ export default function UploadPage() {
         valueOfProducts: parseFloat(values[valueIdx]) || 0,
         nonMachinable: false,
         shippingShield: false,
-        notes: '',
         usePennySleeve: true,
         useTopLoader: false,
         useEnvelope: true,
+        notes: '',
       };
     });
 
@@ -74,7 +97,11 @@ export default function UploadPage() {
     setBatchId(null);
   };
 
-  const updateOrder = <K extends keyof ParsedRow>(index: number, field: K, value: ParsedRow[K]) => {
+  const updateOrder = <K extends keyof ParsedRow>(
+    index: number,
+    field: K,
+    value: ParsedRow[K]
+  ) => {
     const updated = [...orders];
     updated[index][field] = value;
     setOrders(updated);
@@ -112,7 +139,9 @@ export default function UploadPage() {
 
         <form onSubmit={handleCSVUpload} className="mb-8 flex flex-col items-center">
           <input type="file" name="file" accept=".csv" required className="mb-4 border p-2 rounded w-full max-w-md" />
-          <button type="submit" className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">Preview Orders</button>
+          <button type="submit" className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
+            Preview Orders
+          </button>
         </form>
 
         {orders.length > 0 && (
@@ -150,7 +179,7 @@ export default function UploadPage() {
                     <td className="border px-2 py-1">{o.state}</td>
                     <td className="border px-2 py-1">{o.zip}</td>
                     <td className="border px-2 py-1">{o.weight}</td>
-                    <td className={`border px-2 py-1 ${o.valueOfProducts && o.valueOfProducts >= 25 ? 'text-red-600 font-bold' : ''}`}>${o.valueOfProducts?.toFixed(2) || '0.00'}</td>
+                    <td className={`border px-2 py-1 ${o.valueOfProducts >= 25 ? 'text-red-600 font-bold' : ''}`}>${o.valueOfProducts.toFixed(2)}</td>
                     {['nonMachinable', 'shippingShield', 'usePennySleeve', 'useTopLoader', 'useEnvelope'].map((f) => (
                       <td key={f} className="border px-2 py-1 text-center">
                         <input type="checkbox" checked={!!o[f as keyof ParsedRow]} onChange={() => updateOrder(i, f as any, !o[f as keyof ParsedRow])} />
@@ -180,7 +209,12 @@ export default function UploadPage() {
             <h2 className="text-xl font-semibold mb-2">📦 Ground Advantage Labels</h2>
             <ul className="space-y-2">
               {groundLabels.map((label, i) => (
-                <li key={`g-${i}`}><a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Ground Label {i + 1}</a><p className="text-sm text-gray-600">Tracking: {label.tracking}</p></li>
+                <li key={`g-${i}`}>
+                  <a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    Ground Label {i + 1}
+                  </a>
+                  <p className="text-sm text-gray-600">Tracking: {label.tracking}</p>
+                </li>
               ))}
             </ul>
           </div>
@@ -191,7 +225,12 @@ export default function UploadPage() {
             <h2 className="text-xl font-semibold mb-2">✉️ Envelope Labels</h2>
             <ul className="space-y-2">
               {envelopeLabels.map((label, i) => (
-                <li key={`e-${i}`}><a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Envelope Label {i + 1}</a><p className="text-sm text-gray-600">Tracking: {label.tracking}</p></li>
+                <li key={`e-${i}`}>
+                  <a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    Envelope Label {i + 1}
+                  </a>
+                  <p className="text-sm text-gray-600">Tracking: {label.tracking}</p>
+                </li>
               ))}
             </ul>
           </div>
@@ -199,7 +238,9 @@ export default function UploadPage() {
 
         {batchId && (
           <div className="text-center mt-6">
-            <a href={`/dashboard/batch/${batchId}`} className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800">🔍 View This Batch</a>
+            <a href={`/dashboard/batch/${batchId}`} className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800">
+              🔍 View This Batch
+            </a>
           </div>
         )}
       </div>
