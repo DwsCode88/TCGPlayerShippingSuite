@@ -6,6 +6,7 @@ import { auth } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { generateOrderLabels } from '@/lib/generateOrderLabels';
+import { Mail, Shield, Droplet, ClipboardList, Boxes } from 'lucide-react';
 
 type ParsedRow = {
   name: string;
@@ -133,87 +134,114 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">Upload TCGplayer Shipping CSV</h1>
+    <div className="min-h-screen bg-white text-black p-6 pb-24">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <h1 className="text-3xl font-bold text-center">Upload TCGplayer Shipping CSV</h1>
 
-        <form onSubmit={handleCSVUpload} className="mb-8 flex flex-col items-center">
-          <input type="file" name="file" accept=".csv" required className="mb-4 border p-2 rounded w-full max-w-md" />
-          <button type="submit" className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
+        <form onSubmit={handleCSVUpload} className="flex flex-col items-center">
+          <input
+            type="file"
+            name="file"
+            accept=".csv"
+            required
+            className="mb-4 border p-2 rounded w-full max-w-md"
+          />
+          <button
+            type="submit"
+            className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+          >
             Preview Orders
           </button>
         </form>
 
         {orders.length > 0 && (
           <>
-            <div className="flex gap-2 flex-wrap mb-3 text-sm">
-              {['nonMachinable', 'shippingShield', 'usePennySleeve', 'useTopLoader', 'useEnvelope'].map((field) => (
-                <>
-                  <button key={`${field}-yes`} onClick={() => toggleAll(field as any, true)} className="border px-3 py-1 rounded">
-                    ✅ All {field.replace('use', '')}
-                  </button>
-                  <button key={`${field}-no`} onClick={() => toggleAll(field as any, false)} className="border px-3 py-1 rounded">
-                    ❌ No {field.replace('use', '')}
-                  </button>
-                </>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 text-sm">
+              {[['nonMachinable', 'Machinable'], ['shippingShield', 'Shield'], ['usePennySleeve', 'Sleeve'], ['useTopLoader', 'Loader'], ['useEnvelope', 'Envelope']].map(([field, label]) => (
+                <div key={field} className="flex gap-2 items-center">
+                  <span className="font-medium">{label}:</span>
+                  <button onClick={() => toggleAll(field as any, true)} className="bg-green-200 px-2 rounded">✅ All</button>
+                  <button onClick={() => toggleAll(field as any, false)} className="bg-red-200 px-2 rounded">❌ None</button>
+                </div>
               ))}
             </div>
 
-            <table className="w-full border mb-6 text-sm">
-              <thead className="bg-black text-white">
-                <tr>
-                  {['#', 'Order #', 'Name', 'Address 1', 'Address 2', 'City', 'State', 'Zip', 'Weight', 'Value', '📨', '🛡', '💧', '📎', '✉️', '📝 Notes'].map((h) => (
-                    <th key={h} className="border px-2 py-1">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o, i) => (
-                  <tr key={i} className="even:bg-gray-100">
-                    <td className="border px-2 py-1">{i + 1}</td>
-                    <td className="border px-2 py-1">{o.orderNumber}</td>
-                    <td className="border px-2 py-1">{o.name}</td>
-                    <td className="border px-2 py-1">{o.address1}</td>
-                    <td className="border px-2 py-1">{o.address2}</td>
-                    <td className="border px-2 py-1">{o.city}</td>
-                    <td className="border px-2 py-1">{o.state}</td>
-                    <td className="border px-2 py-1">{o.zip}</td>
-                    <td className="border px-2 py-1">{o.weight}</td>
-                    <td className={`border px-2 py-1 ${o.valueOfProducts >= 25 ? 'text-red-600 font-bold' : ''}`}>${o.valueOfProducts.toFixed(2)}</td>
-                    {['nonMachinable', 'shippingShield', 'usePennySleeve', 'useTopLoader', 'useEnvelope'].map((f) => (
-                      <td key={f} className="border px-2 py-1 text-center">
-                        <input type="checkbox" checked={!!o[f as keyof ParsedRow]} onChange={() => updateOrder(i, f as any, !o[f as keyof ParsedRow])} />
-                      </td>
-                    ))}
-                    <td className="border px-2 py-1">
-                      <input type="text" value={o.notes} placeholder="optional" onChange={(e) => updateOrder(i, 'notes', e.target.value)} className="w-full p-1 border rounded" />
-                    </td>
+            <div className="overflow-x-auto mt-6">
+              <table className="min-w-full border text-sm">
+                <thead className="bg-gray-100 text-xs uppercase">
+                  <tr>
+                    <th className="p-2 text-center">#</th>
+                    <th className="p-2">Order #</th>
+                    <th className="p-2">Name</th>
+                    <th className="p-2">Address</th>
+                    <th className="p-2">City</th>
+                    <th className="p-2">State</th>
+                    <th className="p-2">Zip</th>
+                    <th className="p-2 text-center">Weight</th>
+                    <th className="p-2 text-center">Value</th>
+                    <th className="p-2 text-center" title="Machinable"><Mail size={16} /></th>
+                    <th className="p-2 text-center" title="Shield"><Shield size={16} /></th>
+                    <th className="p-2 text-center" title="Sleeve"><Droplet size={16} /></th>
+                    <th className="p-2 text-center" title="Loader"><ClipboardList size={16} /></th>
+                    <th className="p-2 text-center" title="Envelope"><Boxes size={16} /></th>
+                    <th className="p-2">Notes</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {orders.map((o, i) => (
+                    <tr key={i} className="even:bg-gray-50">
+                      <td className="p-2 text-center">{i + 1}</td>
+                      <td className="p-2">{o.orderNumber}</td>
+                      <td className="p-2">{o.name}</td>
+                      <td className="p-2">{o.address1} {o.address2}</td>
+                      <td className="p-2">{o.city}</td>
+                      <td className="p-2">{o.state}</td>
+                      <td className="p-2">{o.zip}</td>
+                      <td className="p-2 text-center">{o.weight}</td>
+                      <td className={`p-2 ${o.valueOfProducts >= 25 ? 'text-red-600 font-bold' : ''}`}>${o.valueOfProducts.toFixed(2)}</td>
+                      {['nonMachinable', 'shippingShield', 'usePennySleeve', 'useTopLoader', 'useEnvelope'].map((f) => (
+                        <td key={f} className="p-2 text-center">
+                          <input type="checkbox" className="w-4 h-4" checked={!!o[f as keyof ParsedRow]} onChange={() => updateOrder(i, f as any, !o[f as keyof ParsedRow])} />
+                        </td>
+                      ))}
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          className="w-full border rounded p-1"
+                          value={o.notes}
+                          onChange={(e) => updateOrder(i, 'notes', e.target.value)}
+                          placeholder="optional"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-            <div className="text-center mt-4 mb-10 space-x-4">
-              <button onClick={generateLabels} className="bg-green-700 text-white px-6 py-2 rounded hover:bg-green-800" disabled={loading}>
-                {loading ? 'Generating...' : 'Generate Labels'}
-              </button>
-              <button onClick={() => generateOrderLabels(orders.map(o => o.orderNumber))} className="bg-purple-700 text-white px-6 py-2 rounded hover:bg-purple-800">
-                🟪 Download 2x2 Order Labels
+            <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow p-4 flex justify-center z-50">
+              <button
+                onClick={generateLabels}
+                className="bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700"
+                disabled={loading}
+              >
+                {loading ? 'Generating...' : '🚀 Generate Labels'}
               </button>
             </div>
           </>
         )}
 
+        {/* Label output sections */}
         {groundLabels.length > 0 && (
-          <div className="mt-6">
+          <div className="mt-8">
             <h2 className="text-xl font-semibold mb-2">📦 Ground Advantage Labels</h2>
             <ul className="space-y-2">
               {groundLabels.map((label, i) => (
                 <li key={`g-${i}`}>
                   <a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                    Ground Label {i + 1}
+                    Label {i + 1}
                   </a>
-                  <p className="text-sm text-gray-600">Tracking: {label.tracking}</p>
+                  <span className="text-sm text-gray-600 ml-2">Tracking: {label.tracking}</span>
                 </li>
               ))}
             </ul>
@@ -221,15 +249,15 @@ export default function UploadPage() {
         )}
 
         {envelopeLabels.length > 0 && (
-          <div className="mt-6">
+          <div className="mt-8">
             <h2 className="text-xl font-semibold mb-2">✉️ Envelope Labels</h2>
             <ul className="space-y-2">
               {envelopeLabels.map((label, i) => (
                 <li key={`e-${i}`}>
                   <a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                    Envelope Label {i + 1}
+                    Label {i + 1}
                   </a>
-                  <p className="text-sm text-gray-600">Tracking: {label.tracking}</p>
+                  <span className="text-sm text-gray-600 ml-2">Tracking: {label.tracking}</span>
                 </li>
               ))}
             </ul>
@@ -238,7 +266,10 @@ export default function UploadPage() {
 
         {batchId && (
           <div className="text-center mt-6">
-            <a href={`/dashboard/batch/${batchId}`} className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800">
+            <a
+              href={`/dashboard/batch/${batchId}`}
+              className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800"
+            >
               🔍 View This Batch
             </a>
           </div>
