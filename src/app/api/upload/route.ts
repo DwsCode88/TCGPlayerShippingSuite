@@ -1,3 +1,4 @@
+// /api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/firebase';
 import { setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -5,7 +6,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
   const orders = await req.json();
-  const results: { url: string; tracking: string }[] = [];
+  const groundAdvantage: { url: string; tracking: string }[] = [];
+  const other: { url: string; tracking: string }[] = [];
 
   const first = orders[0];
   const now = new Date();
@@ -45,6 +47,7 @@ export async function POST(req: NextRequest) {
       }
 
       const authHeader = `Basic ${Buffer.from(userApiKey + ':').toString('base64')}`;
+      const isHighValue = order.valueOfProducts > 25;
 
       const createRes = await fetch('https://api.easypost.com/v2/shipments', {
         method: 'POST',
@@ -72,8 +75,8 @@ export async function POST(req: NextRequest) {
               country: 'US',
             },
             parcel: {
-              predefined_package: 'Letter',
-              weight: Math.max(1, order.weight || 1),
+              predefined_package: isHighValue ? 'Parcel' : 'Letter',
+              weight: isHighValue ? 3 : Math.max(1, order.weight || 1),
             },
             options: {
               label_format: 'PDF',
@@ -87,12 +90,39 @@ export async function POST(req: NextRequest) {
 
       const shipment = await createRes.json();
 
-      const rate = shipment.rates.find(
-        (r: any) => r.carrier === 'USPS' && r.service.includes('First')
-      );
+      if (shipment.error) {
+        console.error(`❌ EasyPost error for ${order.name}:`, shipment.error);
+        continue;
+      }
+
+      if (!shipment?.rates || !Array.isArray(shipment.rates)) {
+        console.error(`❌ No rates returned for ${order.name}. Shipment response:`, shipment);
+        continue;
+      }
+
+      let rate;
+
+      if (isHighValue) {
+        rate = shipment.rates.find(
+          (r: any) => r.carrier === 'USPS' && r.service === 'GroundAdvantage'
+        );
+
+        if (!rate) {
+          console.warn(`⚠️ No USPS Ground Advantage for ${order.name}, using cheapest available`);
+          rate = shipment.rates.reduce((lowest: any, current: any) => {
+            if (!lowest || parseFloat(current.rate) < parseFloat(lowest.rate)) return current;
+            return lowest;
+          }, null);
+        }
+      } else {
+        rate = shipment.rates.reduce((lowest: any, current: any) => {
+          if (!lowest || parseFloat(current.rate) < parseFloat(lowest.rate)) return current;
+          return lowest;
+        }, null);
+      }
 
       if (!rate) {
-        console.warn(`❌ No USPS First-Class rate for ${order.name}`);
+        console.warn(`❌ No valid rate found for ${order.name}`);
         continue;
       }
 
@@ -108,7 +138,7 @@ export async function POST(req: NextRequest) {
       const bought = await buyRes.json();
 
       if (!bought?.postage_label?.label_url) {
-        console.error(`❌ Label failed for ${order.name}`);
+        console.error(`❌ Label purchase failed for ${order.name}`);
         continue;
       }
 
@@ -135,14 +165,20 @@ export async function POST(req: NextRequest) {
         dashboardTimestamp: new Date().toISOString(),
       });
 
-      results.push({
+      const labelData = {
         url: bought.postage_label.label_url,
         tracking: bought.tracking_code,
-      });
+      };
+
+      if (rate.service === 'GroundAdvantage') {
+        groundAdvantage.push(labelData);
+      } else {
+        other.push(labelData);
+      }
     } catch (err) {
       console.error(`🔥 Error generating label for ${order.name}:`, err);
     }
   }
 
-  return NextResponse.json(results);
+  return NextResponse.json({ groundAdvantage, other });
 }

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { auth } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { generateTCGCSV } from '@/lib/generateTCGCSV';
 import { generateOrderLabels } from '@/lib/generateOrderLabels';
 
 type ParsedRow = {
@@ -20,6 +19,7 @@ type ParsedRow = {
   nonMachinable: boolean;
   shippingShield: boolean;
   notes: string;
+  valueOfProducts?: number;
   userId?: string;
   batchId?: string;
   batchName?: string;
@@ -30,13 +30,18 @@ type LabelResult = {
   tracking: string;
 };
 
+type LabelGroups = {
+  groundAdvantage: LabelResult[];
+  other: LabelResult[];
+};
+
 export default function UploadPage() {
   const [user] = useAuthState(auth);
   const router = useRouter();
   const [orders, setOrders] = useState<ParsedRow[]>([]);
-  const [labels, setLabels] = useState<LabelResult[]>([]);
+  const [labels, setLabels] = useState<LabelGroups | null>(null);
   const [loading, setLoading] = useState(false);
-  const [batchId, setBatchId] = useState<string | null>(null); // 🔹 New state
+  const [batchId, setBatchId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) router.push('/login');
@@ -66,6 +71,7 @@ export default function UploadPage() {
     const zip = getIndex('PostalCode');
     const weight = getIndex('Product Weight');
     const orderNum = getIndex('Order #');
+    const valueIdx = getIndex('Value Of Products');
 
     const parsed: ParsedRow[] = lines.slice(1).map((line) => {
       const values = line.split(',').map((v) => v.replace(/^"|"$/g, '').trim());
@@ -78,6 +84,7 @@ export default function UploadPage() {
         zip: values[zip],
         weight: parseFloat(values[weight]) || 1,
         orderNumber: values[orderNum],
+        valueOfProducts: parseFloat(values[valueIdx]) || 0,
         nonMachinable: false,
         shippingShield: false,
         notes: '',
@@ -85,8 +92,8 @@ export default function UploadPage() {
     });
 
     setOrders(parsed);
-    setLabels([]);
-    setBatchId(null); // reset batchId on new upload
+    setLabels(null);
+    setBatchId(null);
   };
 
   const updateOrder = <K extends keyof ParsedRow>(
@@ -130,7 +137,7 @@ export default function UploadPage() {
 
     const data = await res.json();
     setLabels(data);
-    setBatchId(newBatchId); // 🔹 Save for button
+    setBatchId(newBatchId);
     setLoading(false);
   };
 
@@ -173,6 +180,7 @@ export default function UploadPage() {
                   <th className="border px-2 py-1">State</th>
                   <th className="border px-2 py-1">Zip</th>
                   <th className="border px-2 py-1">Weight</th>
+                  <th className="border px-2 py-1">Value</th>
                   <th className="border px-2 py-1">📨</th>
                   <th className="border px-2 py-1">🛡</th>
                   <th className="border px-2 py-1">📝 Notes</th>
@@ -190,6 +198,9 @@ export default function UploadPage() {
                     <td className="border px-2 py-1">{o.state}</td>
                     <td className="border px-2 py-1">{o.zip}</td>
                     <td className="border px-2 py-1">{o.weight}</td>
+                    <td className={`border px-2 py-1 ${o.valueOfProducts && o.valueOfProducts >= 25 ? 'text-red-600 font-bold' : ''}`}>
+                      ${o.valueOfProducts?.toFixed(2) || '0.00'}
+                    </td>
                     <td className="border px-2 py-1 text-center">
                       <input
                         type="checkbox"
@@ -239,24 +250,55 @@ export default function UploadPage() {
           </>
         )}
 
-        {labels.length > 0 && (
+        {labels && (
           <div className="mt-6">
             <h2 className="text-xl font-semibold mb-2">Generated Labels</h2>
-            <ul className="space-y-2">
-              {labels.map((label, i) => (
-                <li key={i}>
-                  <a
-                    href={label.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    Open Label {i + 1}
-                  </a>
-                  <p className="text-sm text-gray-600">Tracking: {label.tracking}</p>
-                </li>
-              ))}
-            </ul>
+
+            {labels.groundAdvantage.length > 0 && (
+              <div className="mb-4">
+                <h3 className="font-bold">🖨 Label Printer Labels (Ground Advantage)</h3>
+                <ul className="space-y-1 mb-2">
+                  {labels.groundAdvantage.map((label, i) => (
+                    <li key={`ga-${i}`}>
+                      <a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        GA Label {i + 1}
+                      </a> – <span className="text-sm text-gray-500">Tracking: {label.tracking}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={labels.groundAdvantage[0]?.url}
+                  download
+                  target="_blank"
+                  className="inline-block bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800"
+                >
+                  ⬇ Download Ground Advantage Labels
+                </a>
+              </div>
+            )}
+
+            {labels.other.length > 0 && (
+              <div className="mb-4">
+                <h3 className="font-bold">✉️ Envelope Labels (First Class / Letter)</h3>
+                <ul className="space-y-1 mb-2">
+                  {labels.other.map((label, i) => (
+                    <li key={`ot-${i}`}>
+                      <a href={label.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        FC Label {i + 1}
+                      </a> – <span className="text-sm text-gray-500">Tracking: {label.tracking}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={labels.other[0]?.url}
+                  download
+                  target="_blank"
+                  className="inline-block bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-800"
+                >
+                  ⬇ Download Envelope Labels
+                </a>
+              </div>
+            )}
 
             {batchId && (
               <div className="text-center mt-6">
