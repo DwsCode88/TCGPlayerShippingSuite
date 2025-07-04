@@ -22,6 +22,15 @@ export default function SettingsForm({ user }: { user: any }) {
     state: '',
     zip: '',
   });
+  const [packageTypes, setPackageTypes] = useState<any[]>([]);
+  const [newPackage, setNewPackage] = useState({
+    name: '',
+    weight: 1,
+    predefined_package: 'Letter',
+    length: '',
+    width: '',
+    height: ''
+  });
 
   const [showKey, setShowKey] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -49,6 +58,7 @@ export default function SettingsForm({ user }: { user: any }) {
           state: '',
           zip: '',
         });
+        setPackageTypes(settings.packageTypes || []);
       }
       setLoading(false);
     };
@@ -69,6 +79,7 @@ export default function SettingsForm({ user }: { user: any }) {
       defaultNonMachinable,
       fromAddress,
       valueThreshold,
+      packageTypes,
     });
     alert('✅ Settings saved!');
   };
@@ -107,6 +118,16 @@ export default function SettingsForm({ user }: { user: any }) {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const addPackageType = () => {
+    if (!newPackage.name) return;
+    setPackageTypes([...packageTypes, newPackage]);
+    setNewPackage({ name: '', weight: 1, predefined_package: 'Letter', length: '', width: '', height: '' });
+  };
+
+  const removePackageType = (index: number) => {
+    setPackageTypes((prev) => prev.filter((_, i) => i !== index));
   };
 
   if (!user || loading) {
@@ -168,16 +189,14 @@ export default function SettingsForm({ user }: { user: any }) {
       {/* Value Threshold */}
       <div>
         <label className="block text-sm text-gray-300 font-medium mb-1 flex items-center gap-1">
-  Value Threshold
-  <span className="ml-1 w-5 h-5 text-sm text-black bg-yellow-300 rounded-full flex items-center justify-center cursor-help shadow-lg hover:scale-105 transition-transform relative group">
-    ?
-    <span className="absolute bottom-full mb-1 w-48 text-xs text-white bg-black rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-      Orders with value above this will ship Ground Advantage instead of Envelope.
-    </span>
-  
-    ?
-  </span>
-</label>
+          Value Threshold
+          <span className="ml-1 w-5 h-5 text-sm text-black bg-yellow-300 rounded-full flex items-center justify-center cursor-help shadow-lg hover:scale-105 transition-transform relative group">
+            ?
+            <span className="absolute bottom-full mb-1 w-48 text-xs text-white bg-black rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              Orders with value above this will ship Ground Advantage instead of Envelope.
+            </span>
+          </span>
+        </label>
         <input
           type="number"
           value={valueThreshold}
@@ -299,7 +318,85 @@ export default function SettingsForm({ user }: { user: any }) {
         </div>
       </div>
 
-      {/* Save Button */}
+      {/* Package Types */}
+      <div>
+        <h3 className="text-lg font-semibold">📦 Custom Package Types</h3>
+        {packageTypes.length > 0 && (
+          <ul className="space-y-2">
+            {packageTypes.map((pkg, i) => (
+              <li key={i} className="flex justify-between items-center bg-gray-800 p-2 rounded">
+                <span className="text-sm">
+                  {pkg.name} – {pkg.weight}oz – {pkg.predefined_package} – {pkg.length}" x {pkg.width}" x {pkg.height}"
+                </span>
+                <button
+                  onClick={() => removePackageType(i)}
+                  className="text-red-400 hover:underline text-sm"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-4 space-y-2">
+          <input
+            type="text"
+            placeholder="Package Name"
+            value={newPackage.name}
+            onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
+            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-600"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="number"
+              placeholder="Weight (oz)"
+              value={newPackage.weight}
+              onChange={(e) => setNewPackage({ ...newPackage, weight: parseFloat(e.target.value) })}
+              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
+            />
+            <select
+              value={newPackage.predefined_package}
+              onChange={(e) => setNewPackage({ ...newPackage, predefined_package: e.target.value })}
+              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
+            >
+              <option value="Letter">Letter</option>
+              <option value="Parcel">Parcel</option>
+              <option value="Flat">Flat</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <input
+              type="text"
+              placeholder="Length (in)"
+              value={newPackage.length}
+              onChange={(e) => setNewPackage({ ...newPackage, length: e.target.value })}
+              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
+            />
+            <input
+              type="text"
+              placeholder="Width (in)"
+              value={newPackage.width}
+              onChange={(e) => setNewPackage({ ...newPackage, width: e.target.value })}
+              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
+            />
+            <input
+              type="text"
+              placeholder="Height (in)"
+              value={newPackage.height}
+              onChange={(e) => setNewPackage({ ...newPackage, height: e.target.value })}
+              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
+            />
+          </div>
+          <button
+            onClick={addPackageType}
+            className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm"
+          >
+            ➕ Add Package Type
+          </button>
+        </div>
+      </div>
+
       <button
         onClick={handleSave}
         className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-semibold"
