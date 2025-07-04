@@ -10,6 +10,7 @@ export type UserSettings = {
   topLoaderCost?: number;
   usePennySleeves?: boolean;
   defaultNonMachinable?: boolean;
+  valueThreshold?: number;
   fromAddress?: {
     name: string;
     street1: string;

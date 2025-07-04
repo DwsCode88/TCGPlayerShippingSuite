@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
       }
 
       const authHeader = `Basic ${Buffer.from(userApiKey + ':').toString('base64')}`;
-      const isHighValue = order.valueOfProducts > 25;
+      const isHighValue = order.useEnvelope === false;
+
 
       const createRes = await fetch('https://api.easypost.com/v2/shipments', {
         method: 'POST',

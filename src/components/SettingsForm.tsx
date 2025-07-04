@@ -11,6 +11,7 @@ export default function SettingsForm({ user }: { user: any }) {
   const [envelopeCost, setEnvelopeCost] = useState(0.0);
   const [shieldCost, setShieldCost] = useState(0.1);
   const [pennySleeveCost, setPennySleeveCost] = useState(0.02);
+  const [valueThreshold, setValueThreshold] = useState<number>(0);
   const [topLoaderCost, setTopLoaderCost] = useState(0.12);
   const [usePennySleeves, setUsePennySleeves] = useState(true);
   const [defaultNonMachinable, setDefaultNonMachinable] = useState(false);
@@ -40,6 +41,7 @@ export default function SettingsForm({ user }: { user: any }) {
         setTopLoaderCost(settings.topLoaderCost || 0.12);
         setUsePennySleeves(settings.usePennySleeves ?? true);
         setDefaultNonMachinable(settings.defaultNonMachinable || false);
+        setValueThreshold(typeof settings.valueThreshold === 'number' && settings.valueThreshold > 0 ? settings.valueThreshold : 25);
         setFromAddress(settings.fromAddress || {
           name: '',
           street1: '',
@@ -66,6 +68,7 @@ export default function SettingsForm({ user }: { user: any }) {
       usePennySleeves,
       defaultNonMachinable,
       fromAddress,
+      valueThreshold,
     });
     alert('✅ Settings saved!');
   };
@@ -160,6 +163,28 @@ export default function SettingsForm({ user }: { user: any }) {
             className="mt-2 w-32 h-auto border border-gray-600 rounded"
           />
         )}
+      </div>
+
+      {/* Value Threshold */}
+      <div>
+        <label className="block text-sm text-gray-300 font-medium mb-1 flex items-center gap-1">
+  Value Threshold
+  <span className="ml-1 w-5 h-5 text-sm text-black bg-yellow-300 rounded-full flex items-center justify-center cursor-help shadow-lg hover:scale-105 transition-transform relative group">
+    ?
+    <span className="absolute bottom-full mb-1 w-48 text-xs text-white bg-black rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      Orders with value above this will ship Ground Advantage instead of Envelope.
+    </span>
+  
+    ?
+  </span>
+</label>
+        <input
+          type="number"
+          value={valueThreshold}
+          onChange={(e) => setValueThreshold(Number(e.target.value))}
+          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+          placeholder="e.g. 20"
+        />
       </div>
 
       {/* Costs */}

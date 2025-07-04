@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { generateOrderLabels } from '@/lib/generateOrderLabels';
 import { Mail, Shield, Droplet, ClipboardList, Boxes } from 'lucide-react';
+import { fetchUserSettings } from '@/lib/userSettings';
+
 
 type ParsedRow = {
   name: string;
@@ -47,11 +49,18 @@ export default function UploadPage() {
     if (!user) router.push('/login');
   }, [user]);
 
-  const handleCSVUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+ const handleCSVUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
+
     const formData = new FormData(e.currentTarget);
     const file = formData.get('file') as File;
     if (!file) return;
+
+    const settings = await fetchUserSettings(user.uid);
+    const threshold = settings && typeof settings.valueThreshold === 'number' && settings.valueThreshold > 0
+      ? settings.valueThreshold
+      : 25;
 
     const text = await file.text();
     const lines = text.split('\n').filter(Boolean);
@@ -73,6 +82,7 @@ export default function UploadPage() {
 
     const parsed: ParsedRow[] = lines.slice(1).map((line) => {
       const values = line.split(',').map((v) => v.replace(/^"|"$/g, '').trim());
+      const value = parseFloat(values[valueIdx]) || 0;
       return {
         name: `${values[fn] ?? ''} ${values[ln] ?? ''}`.trim(),
         address1: values[a1],
@@ -82,15 +92,16 @@ export default function UploadPage() {
         zip: values[zip],
         weight: parseFloat(values[weight]) || 1,
         orderNumber: values[orderNum],
-        valueOfProducts: parseFloat(values[valueIdx]) || 0,
+        valueOfProducts: value,
         nonMachinable: false,
         shippingShield: false,
         usePennySleeve: true,
         useTopLoader: false,
-        useEnvelope: true,
+        useEnvelope: value <= threshold,
         notes: '',
       };
     });
+
 
     setOrders(parsed);
     setGroundLabels([]);
