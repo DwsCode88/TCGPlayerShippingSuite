@@ -145,10 +145,6 @@ export async function POST(req: NextRequest) {
         console.warn(`❌ No valid rate found for ${order.name}`);
         continue;
       }
-      console.log(
-        `🚚 Order ${order.orderNumber} nonMachinable:`,
-        order.nonMachinable
-      );
 
       const buyRes = await fetch(
         `https://api.easypost.com/v2/shipments/${shipment.id}/buy`,
