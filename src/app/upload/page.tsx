@@ -29,6 +29,7 @@ type ParsedRow = {
   userId?: string;
   batchId?: string;
   batchName?: string;
+  itemCount: number;
 };
 
 type LabelResult = {
@@ -45,6 +46,7 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [packageTypes, setPackageTypes] = useState<any[]>([]);
+  const [cardCountThreshold, setCardCountThreshold] = useState<number>(8);
 
   useEffect(() => {
     if (!user) router.push("/login");
@@ -59,6 +61,9 @@ export default function UploadPage() {
     if (!file) return;
 
     const settings = await fetchUserSettings(user.uid);
+    const thresholdFromSettings = settings?.cardCountThreshold ?? 8;
+    setCardCountThreshold(thresholdFromSettings);
+
     const threshold = settings?.valueThreshold ?? 25;
     const packages = settings?.packageTypes || [];
     setPackageTypes(packages);
@@ -82,10 +87,14 @@ export default function UploadPage() {
     const weight = getIndex("Product Weight");
     const orderNum = getIndex("Order #");
     const valueIdx = getIndex("Value Of Products");
+    const countIdx = getIndex("Item Count");
+    const countThreshold = settings?.cardCountThreshold ?? 0;
 
     const parsed: ParsedRow[] = lines.slice(1).map((line) => {
       const values = line.split(",").map((v) => v.replace(/^"|"$/g, "").trim());
       const value = parseFloat(values[valueIdx]) || 0;
+      const count = parseInt(values[countIdx]) || 0;
+
       return {
         name: `${values[fn] ?? ""} ${values[ln] ?? ""}`.trim(),
         address1: values[a1],
@@ -96,7 +105,8 @@ export default function UploadPage() {
         weight: parseFloat(values[weight]) || 1,
         orderNumber: values[orderNum],
         valueOfProducts: value,
-        nonMachinable: false,
+        itemCount: count,
+        nonMachinable: count >= thresholdFromSettings,
         shippingShield: false,
         usePennySleeve: true,
         useTopLoader: false,
@@ -217,6 +227,7 @@ export default function UploadPage() {
                     <th className="p-2">Zip</th>
                     <th className="p-2 text-center">Weight</th>
                     <th className="p-2 text-center">Value</th>
+                    <th className="p-2 text-center">Items</th>
                     <th className="p-2 text-center">Package</th>
                     <th className="p-2 text-center" title="Machinable">
                       <Mail size={16} />
@@ -258,6 +269,16 @@ export default function UploadPage() {
                       >
                         ${o.valueOfProducts.toFixed(2)}
                       </td>
+                      <td
+                        className={`p-2 text-center ${
+                          o.itemCount >= cardCountThreshold
+                            ? "text-red-600 font-bold"
+                            : ""
+                        }`}
+                      >
+                        {o.itemCount}
+                      </td>
+
                       <td className="p-2">
                         <select
                           className="border p-1 rounded text-xs"

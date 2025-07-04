@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { fetchUserSettings, saveUserSettings } from '@/lib/userSettings';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { storage } from '@/firebase';
+import { useEffect, useState } from "react";
+import { fetchUserSettings, saveUserSettings } from "@/lib/userSettings";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { storage } from "@/firebase";
 
 export default function SettingsForm({ user }: { user: any }) {
-  const [easypostApiKey, setEasypostApiKey] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
+  const [easypostApiKey, setEasypostApiKey] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [envelopeCost, setEnvelopeCost] = useState(0.0);
   const [shieldCost, setShieldCost] = useState(0.1);
   const [pennySleeveCost, setPennySleeveCost] = useState(0.02);
@@ -15,21 +15,23 @@ export default function SettingsForm({ user }: { user: any }) {
   const [topLoaderCost, setTopLoaderCost] = useState(0.12);
   const [usePennySleeves, setUsePennySleeves] = useState(true);
   const [defaultNonMachinable, setDefaultNonMachinable] = useState(false);
+  const [cardCountThreshold, setCardCountThreshold] = useState<number>(0);
+
   const [fromAddress, setFromAddress] = useState({
-    name: '',
-    street1: '',
-    city: '',
-    state: '',
-    zip: '',
+    name: "",
+    street1: "",
+    city: "",
+    state: "",
+    zip: "",
   });
   const [packageTypes, setPackageTypes] = useState<any[]>([]);
   const [newPackage, setNewPackage] = useState({
-    name: '',
+    name: "",
     weight: 1,
-    predefined_package: 'Letter',
-    length: '',
-    width: '',
-    height: ''
+    predefined_package: "Letter",
+    length: "",
+    width: "",
+    height: "",
   });
 
   const [showKey, setShowKey] = useState(true);
@@ -42,22 +44,35 @@ export default function SettingsForm({ user }: { user: any }) {
     const loadSettings = async () => {
       const settings = await fetchUserSettings(user.uid);
       if (settings) {
-        setEasypostApiKey(settings.easypostApiKey || '');
-        setLogoUrl(settings.logoUrl || '');
+        setEasypostApiKey(settings.easypostApiKey || "");
+        setLogoUrl(settings.logoUrl || "");
         setEnvelopeCost(settings.envelopeCost || 0.0);
         setShieldCost(settings.shieldCost || 0.1);
         setPennySleeveCost(settings.pennySleeveCost || 0.02);
         setTopLoaderCost(settings.topLoaderCost || 0.12);
         setUsePennySleeves(settings.usePennySleeves ?? true);
         setDefaultNonMachinable(settings.defaultNonMachinable || false);
-        setValueThreshold(typeof settings.valueThreshold === 'number' && settings.valueThreshold > 0 ? settings.valueThreshold : 25);
-        setFromAddress(settings.fromAddress || {
-          name: '',
-          street1: '',
-          city: '',
-          state: '',
-          zip: '',
-        });
+        setValueThreshold(
+          typeof settings.valueThreshold === "number" &&
+            settings.valueThreshold > 0
+            ? settings.valueThreshold
+            : 25
+        );
+        setFromAddress(
+          settings.fromAddress || {
+            name: "",
+            street1: "",
+            city: "",
+            state: "",
+            zip: "",
+          }
+        );
+        setCardCountThreshold(
+          typeof settings.cardCountThreshold === "number" &&
+            settings.cardCountThreshold > 0
+            ? settings.cardCountThreshold
+            : 8
+        );
         setPackageTypes(settings.packageTypes || []);
       }
       setLoading(false);
@@ -80,16 +95,17 @@ export default function SettingsForm({ user }: { user: any }) {
       fromAddress,
       valueThreshold,
       packageTypes,
+      cardCountThreshold,
     });
-    alert('✅ Settings saved!');
+    alert("✅ Settings saved!");
   };
 
   const handleTestKey = async () => {
-    setTestResult('⏳ Testing key...');
+    setTestResult("⏳ Testing key...");
     try {
-      const res = await fetch('/api/test-easypost', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/test-easypost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey: easypostApiKey }),
       });
 
@@ -100,7 +116,7 @@ export default function SettingsForm({ user }: { user: any }) {
         setTestResult(`❌ Invalid key: ${data.error}`);
       }
     } catch (err) {
-      setTestResult('❌ Network or server error.');
+      setTestResult("❌ Network or server error.");
     }
   };
 
@@ -123,7 +139,14 @@ export default function SettingsForm({ user }: { user: any }) {
   const addPackageType = () => {
     if (!newPackage.name) return;
     setPackageTypes([...packageTypes, newPackage]);
-    setNewPackage({ name: '', weight: 1, predefined_package: 'Letter', length: '', width: '', height: '' });
+    setNewPackage({
+      name: "",
+      weight: 1,
+      predefined_package: "Letter",
+      length: "",
+      width: "",
+      height: "",
+    });
   };
 
   const removePackageType = (index: number) => {
@@ -131,7 +154,9 @@ export default function SettingsForm({ user }: { user: any }) {
   };
 
   if (!user || loading) {
-    return <div className="text-center text-white py-10">Loading settings...</div>;
+    return (
+      <div className="text-center text-white py-10">Loading settings...</div>
+    );
   }
 
   return (
@@ -140,10 +165,12 @@ export default function SettingsForm({ user }: { user: any }) {
 
       {/* API Key */}
       <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">EasyPost API Key</label>
+        <label className="block text-sm text-gray-300 font-medium mb-1">
+          EasyPost API Key
+        </label>
         <div className="flex gap-2 items-center">
           <input
-            type={showKey ? 'text' : 'password'}
+            type={showKey ? "text" : "password"}
             name="fake-password"
             autoComplete="new-password"
             className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
@@ -156,7 +183,7 @@ export default function SettingsForm({ user }: { user: any }) {
             onClick={() => setShowKey(!showKey)}
             className="text-sm text-blue-400 underline"
           >
-            {showKey ? 'Hide' : 'Show'}
+            {showKey ? "Hide" : "Show"}
           </button>
         </div>
         <button
@@ -165,12 +192,16 @@ export default function SettingsForm({ user }: { user: any }) {
         >
           🔍 Test Key
         </button>
-        {testResult && <div className="mt-2 text-sm text-yellow-300">{testResult}</div>}
+        {testResult && (
+          <div className="mt-2 text-sm text-yellow-300">{testResult}</div>
+        )}
       </div>
 
       {/* Logo Upload */}
       <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">Upload Logo</label>
+        <label className="block text-sm text-gray-300 font-medium mb-1">
+          Upload Logo
+        </label>
         <input
           type="file"
           accept="image/*"
@@ -193,7 +224,8 @@ export default function SettingsForm({ user }: { user: any }) {
           <span className="ml-1 w-5 h-5 text-sm text-black bg-yellow-300 rounded-full flex items-center justify-center cursor-help shadow-lg hover:scale-105 transition-transform relative group">
             ?
             <span className="absolute bottom-full mb-1 w-48 text-xs text-white bg-black rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              Orders with value above this will ship Ground Advantage instead of Envelope.
+              Orders with value above this will ship Ground Advantage instead of
+              Envelope.
             </span>
           </span>
         </label>
@@ -205,10 +237,25 @@ export default function SettingsForm({ user }: { user: any }) {
           placeholder="e.g. 20"
         />
       </div>
+      <div>
+        <label className="block text-sm text-gray-300 font-medium mb-1">
+          Card Count Threshold (Non-Machinable)
+        </label>
+        <input
+          type="number"
+          min={0}
+          value={cardCountThreshold}
+          onChange={(e) => setCardCountThreshold(Number(e.target.value))}
+          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+          placeholder="e.g. 10"
+        />
+      </div>
 
       {/* Costs */}
       <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">Envelope Cost ($)</label>
+        <label className="block text-sm text-gray-300 font-medium mb-1">
+          Envelope Cost ($)
+        </label>
         <input
           type="number"
           min={0}
@@ -220,7 +267,9 @@ export default function SettingsForm({ user }: { user: any }) {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">Shield Cost ($)</label>
+        <label className="block text-sm text-gray-300 font-medium mb-1">
+          Shield Cost ($)
+        </label>
         <input
           type="number"
           min={0}
@@ -232,7 +281,9 @@ export default function SettingsForm({ user }: { user: any }) {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">Penny Sleeve Cost ($)</label>
+        <label className="block text-sm text-gray-300 font-medium mb-1">
+          Penny Sleeve Cost ($)
+        </label>
         <input
           type="number"
           min={0}
@@ -244,7 +295,9 @@ export default function SettingsForm({ user }: { user: any }) {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">Top Loader Cost ($)</label>
+        <label className="block text-sm text-gray-300 font-medium mb-1">
+          Top Loader Cost ($)
+        </label>
         <input
           type="number"
           min={0}
@@ -263,7 +316,9 @@ export default function SettingsForm({ user }: { user: any }) {
           onChange={(e) => setUsePennySleeves(e.target.checked)}
           className="w-4 h-4"
         />
-        <label className="text-sm text-gray-300">Use Penny Sleeves by Default</label>
+        <label className="text-sm text-gray-300">
+          Use Penny Sleeves by Default
+        </label>
       </div>
 
       <div className="flex items-center gap-2">
@@ -273,7 +328,9 @@ export default function SettingsForm({ user }: { user: any }) {
           onChange={(e) => setDefaultNonMachinable(e.target.checked)}
           className="w-4 h-4"
         />
-        <label className="text-sm text-gray-300">Default to Non-Machinable</label>
+        <label className="text-sm text-gray-300">
+          Default to Non-Machinable
+        </label>
       </div>
 
       {/* From Address */}
@@ -284,14 +341,14 @@ export default function SettingsForm({ user }: { user: any }) {
           placeholder="Name"
           className="w-full p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
           value={fromAddress.name}
-          onChange={(e) => updateAddressField('name', e.target.value)}
+          onChange={(e) => updateAddressField("name", e.target.value)}
         />
         <input
           type="text"
           placeholder="Street"
           className="w-full p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
           value={fromAddress.street1}
-          onChange={(e) => updateAddressField('street1', e.target.value)}
+          onChange={(e) => updateAddressField("street1", e.target.value)}
         />
         <div className="flex gap-2">
           <input
@@ -299,21 +356,21 @@ export default function SettingsForm({ user }: { user: any }) {
             placeholder="City"
             className="w-full p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
             value={fromAddress.city}
-            onChange={(e) => updateAddressField('city', e.target.value)}
+            onChange={(e) => updateAddressField("city", e.target.value)}
           />
           <input
             type="text"
             placeholder="State"
             className="w-1/3 p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
             value={fromAddress.state}
-            onChange={(e) => updateAddressField('state', e.target.value)}
+            onChange={(e) => updateAddressField("state", e.target.value)}
           />
           <input
             type="text"
             placeholder="ZIP"
             className="w-1/3 p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
             value={fromAddress.zip}
-            onChange={(e) => updateAddressField('zip', e.target.value)}
+            onChange={(e) => updateAddressField("zip", e.target.value)}
           />
         </div>
       </div>
@@ -324,9 +381,13 @@ export default function SettingsForm({ user }: { user: any }) {
         {packageTypes.length > 0 && (
           <ul className="space-y-2">
             {packageTypes.map((pkg, i) => (
-              <li key={i} className="flex justify-between items-center bg-gray-800 p-2 rounded">
+              <li
+                key={i}
+                className="flex justify-between items-center bg-gray-800 p-2 rounded"
+              >
                 <span className="text-sm">
-                  {pkg.name} – {pkg.weight}oz – {pkg.predefined_package} – {pkg.length}" x {pkg.width}" x {pkg.height}"
+                  {pkg.name} – {pkg.weight}oz – {pkg.predefined_package} –{" "}
+                  {pkg.length}" x {pkg.width}" x {pkg.height}"
                 </span>
                 <button
                   onClick={() => removePackageType(i)}
@@ -344,7 +405,9 @@ export default function SettingsForm({ user }: { user: any }) {
             type="text"
             placeholder="Package Name"
             value={newPackage.name}
-            onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
+            onChange={(e) =>
+              setNewPackage({ ...newPackage, name: e.target.value })
+            }
             className="w-full p-2 rounded bg-gray-800 text-white border border-gray-600"
           />
           <div className="grid grid-cols-2 gap-2">
@@ -352,12 +415,22 @@ export default function SettingsForm({ user }: { user: any }) {
               type="number"
               placeholder="Weight (oz)"
               value={newPackage.weight}
-              onChange={(e) => setNewPackage({ ...newPackage, weight: parseFloat(e.target.value) })}
+              onChange={(e) =>
+                setNewPackage({
+                  ...newPackage,
+                  weight: parseFloat(e.target.value),
+                })
+              }
               className="p-2 rounded bg-gray-800 text-white border border-gray-600"
             />
             <select
               value={newPackage.predefined_package}
-              onChange={(e) => setNewPackage({ ...newPackage, predefined_package: e.target.value })}
+              onChange={(e) =>
+                setNewPackage({
+                  ...newPackage,
+                  predefined_package: e.target.value,
+                })
+              }
               className="p-2 rounded bg-gray-800 text-white border border-gray-600"
             >
               <option value="Letter">Letter</option>
@@ -370,21 +443,27 @@ export default function SettingsForm({ user }: { user: any }) {
               type="text"
               placeholder="Length (in)"
               value={newPackage.length}
-              onChange={(e) => setNewPackage({ ...newPackage, length: e.target.value })}
+              onChange={(e) =>
+                setNewPackage({ ...newPackage, length: e.target.value })
+              }
               className="p-2 rounded bg-gray-800 text-white border border-gray-600"
             />
             <input
               type="text"
               placeholder="Width (in)"
               value={newPackage.width}
-              onChange={(e) => setNewPackage({ ...newPackage, width: e.target.value })}
+              onChange={(e) =>
+                setNewPackage({ ...newPackage, width: e.target.value })
+              }
               className="p-2 rounded bg-gray-800 text-white border border-gray-600"
             />
             <input
               type="text"
               placeholder="Height (in)"
               value={newPackage.height}
-              onChange={(e) => setNewPackage({ ...newPackage, height: e.target.value })}
+              onChange={(e) =>
+                setNewPackage({ ...newPackage, height: e.target.value })
+              }
               className="p-2 rounded bg-gray-800 text-white border border-gray-600"
             />
           </div>

@@ -11,6 +11,7 @@ export type UserSettings = {
   usePennySleeves?: boolean;
   defaultNonMachinable?: boolean;
   valueThreshold?: number;
+  cardCountThreshold?: number;
   fromAddress?: {
     name: string;
     street1: string;
