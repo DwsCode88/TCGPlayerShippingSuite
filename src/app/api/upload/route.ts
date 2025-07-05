@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 export async function POST(req: NextRequest) {
   const orders = await req.json();
   const groundAdvantage: { url: string; tracking: string }[] = [];
-  const other: { url: string; tracking: string }[] = [];
+  const envelopes: { url: string; tracking: string }[] = [];
 
   const first = orders[0];
   const now = new Date();
@@ -34,31 +34,25 @@ export async function POST(req: NextRequest) {
       const userSettings = userSnap.exists() ? userSnap.data() : {};
       const userApiKey = userSettings.easypostApiKey;
 
-      if (!userApiKey) {
-        console.warn(`❌ Missing API key for user ${order.userId}`);
-        continue;
-      }
+      if (!userApiKey) continue;
 
       const fromAddress = userSettings.fromAddress;
-      if (!fromAddress) {
-        console.warn(`❌ Missing fromAddress for user ${order.userId}`);
-        continue;
-      }
+      if (!fromAddress) continue;
 
       const authHeader = `Basic ${Buffer.from(userApiKey + ":").toString(
         "base64"
       )}`;
       const isHighValue = order.useEnvelope === false;
 
-      // 👇 Build parcel from selectedPackage if available
-      const parcel = order.selectedPackage
+      // Custom logic to support predefined package or dimensions
+      const customPackage = order.selectedPackage || {};
+      const parcel = customPackage.name
         ? {
-            predefined_package:
-              order.selectedPackage.predefined_package || undefined,
-            weight: order.selectedPackage.weight || 1,
-            length: order.selectedPackage.length || undefined,
-            width: order.selectedPackage.width || undefined,
-            height: order.selectedPackage.height || undefined,
+            predefined_package: customPackage.predefined_package || undefined,
+            weight: parseFloat(customPackage.weight) || 1,
+            length: customPackage.length || undefined,
+            width: customPackage.width || undefined,
+            height: customPackage.height || undefined,
           }
         : {
             predefined_package: isHighValue ? "Parcel" : "Letter",
@@ -102,49 +96,25 @@ export async function POST(req: NextRequest) {
       });
 
       const shipment = await createRes.json();
-
-      if (shipment.error) {
-        console.error(`❌ EasyPost error for ${order.name}:`, shipment.error);
-        continue;
-      }
-
-      if (!shipment?.rates || !Array.isArray(shipment.rates)) {
-        console.error(
-          `❌ No rates returned for ${order.name}. Shipment response:`,
-          shipment
-        );
-        continue;
-      }
+      if (shipment.error || !shipment.rates?.length) continue;
 
       let rate;
-
       if (isHighValue) {
         rate = shipment.rates.find(
           (r: any) => r.carrier === "USPS" && r.service === "GroundAdvantage"
         );
-
-        if (!rate) {
-          console.warn(
-            `⚠️ No USPS Ground Advantage for ${order.name}, using cheapest available`
-          );
-          rate = shipment.rates.reduce((lowest: any, current: any) => {
-            if (!lowest || parseFloat(current.rate) < parseFloat(lowest.rate))
-              return current;
-            return lowest;
-          }, null);
-        }
-      } else {
-        rate = shipment.rates.reduce((lowest: any, current: any) => {
-          if (!lowest || parseFloat(current.rate) < parseFloat(lowest.rate))
-            return current;
-          return lowest;
-        }, null);
       }
-
       if (!rate) {
-        console.warn(`❌ No valid rate found for ${order.name}`);
-        continue;
+        rate = shipment.rates.reduce(
+          (lowest: any, current: any) =>
+            parseFloat(current.rate) < parseFloat(lowest?.rate || "Infinity")
+              ? current
+              : lowest,
+          null
+        );
       }
+
+      if (!rate) continue;
 
       const buyRes = await fetch(
         `https://api.easypost.com/v2/shipments/${shipment.id}/buy`,
@@ -159,16 +129,12 @@ export async function POST(req: NextRequest) {
       );
 
       const bought = await buyRes.json();
-
-      if (!bought?.postage_label?.label_url) {
-        console.error(`❌ Label purchase failed for ${order.name}`);
-        continue;
-      }
+      if (!bought?.postage_label?.label_url) continue;
 
       const orderId = uuidv4();
-
-      const envelopeCost =
-        order.useEnvelope === false ? 0 : userSettings.envelopeCost || 0.1;
+      const envelopeCost = order.useEnvelope
+        ? userSettings.envelopeCost || 0.1
+        : 0;
       const shieldCost = order.shippingShield
         ? userSettings.shieldCost || 0.1
         : 0;
@@ -178,8 +144,7 @@ export async function POST(req: NextRequest) {
       const loaderCost = order.useTopLoader
         ? userSettings.topLoaderCost || 0.12
         : 0;
-
-      const labelCost = parseFloat(rate?.rate || "0.63");
+      const labelCost = parseFloat(rate.rate || "0.63");
       const totalCost = parseFloat(
         (
           labelCost +
@@ -189,6 +154,9 @@ export async function POST(req: NextRequest) {
           loaderCost
         ).toFixed(2)
       );
+
+      const labelType =
+        rate.service === "GroundAdvantage" ? "ground" : "envelope";
 
       await setDoc(doc(db, "orders", orderId), {
         userId: order.userId || "unknown",
@@ -203,13 +171,15 @@ export async function POST(req: NextRequest) {
         shieldCost,
         pennyCost,
         loaderCost,
-        usePennySleeve: order.usePennySleeve || false,
-        useTopLoader: order.useTopLoader || false,
-        useEnvelope: order.useEnvelope !== false,
-        totalCost,
+        usePennySleeve: !!order.usePennySleeve,
+        useTopLoader: !!order.useTopLoader,
+        useEnvelope: !!order.useEnvelope,
         shippingShield: !!order.shippingShield,
+        totalCost,
         createdAt: Date.now(),
         dashboardTimestamp: new Date().toISOString(),
+        labelType,
+        notes: order.notes || "",
       });
 
       const labelData = {
@@ -217,15 +187,15 @@ export async function POST(req: NextRequest) {
         tracking: bought.tracking_code,
       };
 
-      if (rate.service === "GroundAdvantage") {
+      if (labelType === "ground") {
         groundAdvantage.push(labelData);
       } else {
-        other.push(labelData);
+        envelopes.push(labelData);
       }
     } catch (err) {
-      console.error(`🔥 Error generating label for ${order.name}:`, err);
+      console.error(`🔥 Error processing order ${order.name}:`, err);
     }
   }
 
-  return NextResponse.json({ groundAdvantage, other });
+  return NextResponse.json({ groundAdvantage, envelopes });
 }

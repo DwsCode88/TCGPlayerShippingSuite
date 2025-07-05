@@ -47,6 +47,7 @@ export default function UploadPage() {
   const [batchId, setBatchId] = useState<string | null>(null);
   const [packageTypes, setPackageTypes] = useState<any[]>([]);
   const [cardCountThreshold, setCardCountThreshold] = useState<number>(8);
+  const [labelsGenerated, setLabelsGenerated] = useState(false);
 
   useEffect(() => {
     if (!user) router.push("/login");
@@ -161,6 +162,7 @@ export default function UploadPage() {
     setEnvelopeLabels(data.other || []);
     setBatchId(newBatchId);
     setLoading(false);
+    setLabelsGenerated(true);
   };
 
   return (
@@ -339,38 +341,16 @@ export default function UploadPage() {
               <button
                 onClick={generateLabels}
                 className="bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700"
-                disabled={loading}
+                disabled={loading || labelsGenerated}
               >
-                {loading ? "Generating..." : "🚀 Generate Labels"}
+                {loading
+                  ? "Generating..."
+                  : labelsGenerated
+                  ? "Labels Generated"
+                  : "🚀 Generate Labels"}
               </button>
             </div>
           </>
-        )}
-
-        {/* Label previews */}
-        {groundLabels.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-2">
-              📦 Ground Advantage Labels
-            </h2>
-            <ul className="space-y-2">
-              {groundLabels.map((label, i) => (
-                <li key={`g-${i}`}>
-                  <a
-                    href={label.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    Label {i + 1}
-                  </a>
-                  <span className="text-sm text-gray-600 ml-2">
-                    Tracking: {label.tracking}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
         )}
 
         {envelopeLabels.length > 0 && (
@@ -402,7 +382,7 @@ export default function UploadPage() {
               href={`/dashboard/batch/${batchId}`}
               className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800"
             >
-              🔍 View This Batch
+              🔍 View This Batch & Print Postage
             </a>
           </div>
         )}
