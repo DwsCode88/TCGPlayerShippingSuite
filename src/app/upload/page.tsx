@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/firebase";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Mail, Shield, Droplet, ClipboardList, Boxes } from "lucide-react";
 import { fetchUserSettings } from "@/lib/userSettings";
 
 type ParsedRow = {
@@ -44,10 +43,11 @@ export default function UploadPage() {
   const [groundLabels, setGroundLabels] = useState<LabelResult[]>([]);
   const [envelopeLabels, setEnvelopeLabels] = useState<LabelResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [labelsGenerated, setLabelsGenerated] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [packageTypes, setPackageTypes] = useState<any[]>([]);
   const [cardCountThreshold, setCardCountThreshold] = useState<number>(8);
-  const [labelsGenerated, setLabelsGenerated] = useState(false);
+  const [valueThreshold, setValueThreshold] = useState<number>(25);
 
   useEffect(() => {
     if (!user) router.push("/login");
@@ -66,6 +66,7 @@ export default function UploadPage() {
     setCardCountThreshold(thresholdFromSettings);
 
     const threshold = settings?.valueThreshold ?? 25;
+    setValueThreshold(threshold);
     const packages = settings?.packageTypes || [];
     setPackageTypes(packages);
 
@@ -89,7 +90,6 @@ export default function UploadPage() {
     const orderNum = getIndex("Order #");
     const valueIdx = getIndex("Value Of Products");
     const countIdx = getIndex("Item Count");
-    const countThreshold = settings?.cardCountThreshold ?? 0;
 
     const parsed: ParsedRow[] = lines.slice(1).map((line) => {
       const values = line.split(",").map((v) => v.replace(/^"|"$/g, "").trim());
@@ -122,6 +122,7 @@ export default function UploadPage() {
     setGroundLabels([]);
     setEnvelopeLabels([]);
     setBatchId(null);
+    setLabelsGenerated(false);
   };
 
   const updateOrder = <K extends keyof ParsedRow>(
@@ -132,10 +133,6 @@ export default function UploadPage() {
     const updated = [...orders];
     updated[index][field] = value;
     setOrders(updated);
-  };
-
-  const toggleAll = (field: keyof ParsedRow, value: boolean) => {
-    setOrders((prev) => prev.map((o) => ({ ...o, [field]: value })));
   };
 
   const generateLabels = async () => {
@@ -190,32 +187,6 @@ export default function UploadPage() {
 
         {orders.length > 0 && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 text-sm">
-              {[
-                ["nonMachinable", "Machinable"],
-                ["shippingShield", "Shield"],
-                ["usePennySleeve", "Sleeve"],
-                ["useTopLoader", "Loader"],
-                ["useEnvelope", "Envelope"],
-              ].map(([field, label]) => (
-                <div key={field} className="flex gap-2 items-center">
-                  <span className="font-medium">{label}:</span>
-                  <button
-                    onClick={() => toggleAll(field as any, true)}
-                    className="bg-green-200 px-2 rounded"
-                  >
-                    ✅ All
-                  </button>
-                  <button
-                    onClick={() => toggleAll(field as any, false)}
-                    className="bg-red-200 px-2 rounded"
-                  >
-                    ❌ None
-                  </button>
-                </div>
-              ))}
-            </div>
-
             <div className="overflow-x-auto mt-6">
               <table className="min-w-full border text-sm">
                 <thead className="bg-gray-100 text-xs uppercase">
@@ -231,21 +202,6 @@ export default function UploadPage() {
                     <th className="p-2 text-center">Value</th>
                     <th className="p-2 text-center">Items</th>
                     <th className="p-2 text-center">Package</th>
-                    <th className="p-2 text-center" title="Machinable">
-                      <Mail size={16} />
-                    </th>
-                    <th className="p-2 text-center" title="Shield">
-                      <Shield size={16} />
-                    </th>
-                    <th className="p-2 text-center" title="Sleeve">
-                      <Droplet size={16} />
-                    </th>
-                    <th className="p-2 text-center" title="Loader">
-                      <ClipboardList size={16} />
-                    </th>
-                    <th className="p-2 text-center" title="Envelope">
-                      <Boxes size={16} />
-                    </th>
                     <th className="p-2">Notes</th>
                   </tr>
                 </thead>
@@ -262,8 +218,10 @@ export default function UploadPage() {
                       <td className="p-2">{o.state}</td>
                       <td className="p-2">{o.zip}</td>
                       <td className="p-2 text-center">{o.weight}</td>
+
+                      {/* 🔴 Highlight value >= 25 */}
                       <td
-                        className={`p-2 ${
+                        className={`p-2 text-center ${
                           o.valueOfProducts >= 25
                             ? "text-red-600 font-bold"
                             : ""
@@ -271,6 +229,8 @@ export default function UploadPage() {
                       >
                         ${o.valueOfProducts.toFixed(2)}
                       </td>
+
+                      {/* 🔴 Highlight item count ≥ threshold */}
                       <td
                         className={`p-2 text-center ${
                           o.itemCount >= cardCountThreshold
@@ -302,24 +262,7 @@ export default function UploadPage() {
                           ))}
                         </select>
                       </td>
-                      {[
-                        "nonMachinable",
-                        "shippingShield",
-                        "usePennySleeve",
-                        "useTopLoader",
-                        "useEnvelope",
-                      ].map((f) => (
-                        <td key={f} className="p-2 text-center">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4"
-                            checked={!!o[f as keyof ParsedRow]}
-                            onChange={() =>
-                              updateOrder(i, f as any, !o[f as keyof ParsedRow])
-                            }
-                          />
-                        </td>
-                      ))}
+
                       <td className="p-2">
                         <input
                           type="text"
@@ -335,6 +278,24 @@ export default function UploadPage() {
                   ))}
                 </tbody>
               </table>
+              <p className="text-sm text-gray-600 mt-2">
+                <span className="text-red-600 font-bold">Red text</span> means
+                the order meets one of the following:
+                <ul className="list-disc list-inside text-gray-700 pl-4 mt-1">
+                  <li>
+                    <span className="text-red-600 font-bold">
+                      Value ≥ ${valueThreshold}
+                    </span>{" "}
+                    → treated as high value (non-envelope)
+                  </li>
+                  <li>
+                    <span className="text-red-600 font-bold">
+                      Item Count ≥ {cardCountThreshold}
+                    </span>{" "}
+                    → treated as non-machinable
+                  </li>
+                </ul>
+              </p>
             </div>
 
             <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow p-4 flex justify-center z-50">
@@ -353,6 +314,28 @@ export default function UploadPage() {
           </>
         )}
 
+        {groundLabels.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-2">
+              📦 Ground Advantage Labels
+            </h2>
+            <ul className="space-y-2">
+              {groundLabels.map((label, i) => (
+                <li key={`g-${i}`}>
+                  <a
+                    href={label.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline"
+                  >
+                    Label {i + 1}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {envelopeLabels.length > 0 && (
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-2">✉️ Envelope Labels</h2>
@@ -367,9 +350,6 @@ export default function UploadPage() {
                   >
                     Label {i + 1}
                   </a>
-                  <span className="text-sm text-gray-600 ml-2">
-                    Tracking: {label.tracking}
-                  </span>
                 </li>
               ))}
             </ul>
@@ -382,7 +362,7 @@ export default function UploadPage() {
               href={`/dashboard/batch/${batchId}`}
               className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800"
             >
-              🔍 View This Batch & Print Postage
+              🔍 View Batch and Print Postage
             </a>
           </div>
         )}
