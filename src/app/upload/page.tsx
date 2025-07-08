@@ -47,7 +47,7 @@ export default function UploadPage() {
     }
   }, [user]);
 
-  const handleCSVUpload = async (e) => {
+  const handleCSVUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
 
