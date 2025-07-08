@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { fetchUserSettings } from "@/lib/userSettings";
 import { FileUp, Loader2, UploadCloud } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 // TYPES
 type PackageType = {
@@ -69,12 +70,11 @@ export default function UploadPage() {
         if (Array.isArray(parsed?.data) && parsed.data.length > 0) {
           setOrders(parsed.data);
           restoredOnce.current = true;
-          setTimeout(() => {
-            alert(
-              "✅ Restored previous session: " +
-                new Date(parsed.name).toLocaleString()
-            );
-          }, 300);
+          toast.success(
+            `✅ Restored previous session: ${new Date(
+              parsed.name
+            ).toLocaleString()}`
+          );
         }
       } catch (err) {
         console.warn("Failed to parse saved uploadDraft");
@@ -185,6 +185,7 @@ export default function UploadPage() {
     setLoading(false);
     setLabelsGenerated(true);
     localStorage.removeItem("uploadDraft");
+    toast.success("✅ Labels generated and batch saved!");
   };
 
   return (
@@ -224,7 +225,7 @@ export default function UploadPage() {
                   const label = document.getElementById("file-label");
                   if (!file) return;
                   if (!file.name.startsWith("TCGplayer_ShippingExport_")) {
-                    alert(
+                    toast.error(
                       "❌ File must start with 'TCGplayer_ShippingExport_'"
                     );
                     e.target.value = "";
@@ -252,6 +253,7 @@ export default function UploadPage() {
                 onClick={() => {
                   localStorage.removeItem("uploadDraft");
                   setOrders([]);
+                  toast("🗑 Draft discarded");
                 }}
                 className="text-sm text-red-600 hover:underline mb-2"
               >
