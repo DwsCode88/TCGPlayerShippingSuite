@@ -1,10 +1,9 @@
-// Full revamped UploadPage with extended layout and flow experience
 "use client";
 
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/firebase";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { fetchUserSettings } from "@/lib/userSettings";
 import { FileUp, Loader2, UploadCloud } from "lucide-react";
@@ -21,9 +20,31 @@ export default function UploadPage() {
   const [packageTypes, setPackageTypes] = useState([]);
   const [cardCountThreshold, setCardCountThreshold] = useState(8);
   const [valueThreshold, setValueThreshold] = useState(25);
+  const restoredOnce = useRef(false);
 
   useEffect(() => {
-    if (!user) router.push("/login");
+    if (!user || restoredOnce.current) return;
+
+    const saved = localStorage.getItem("uploadDraft");
+    if (saved && !orders.length) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed?.data) && parsed.data.length > 0) {
+          setOrders(parsed.data);
+          restoredOnce.current = true;
+          setTimeout(
+            () =>
+              alert(
+                "✅ Restored previous session: " +
+                  new Date(parsed.name).toLocaleString()
+              ),
+            300
+          );
+        }
+      } catch (err) {
+        console.warn("Failed to parse saved uploadDraft");
+      }
+    }
   }, [user]);
 
   const handleCSVUpload = async (e) => {
@@ -81,6 +102,10 @@ export default function UploadPage() {
     });
 
     setOrders(parsed);
+    localStorage.setItem(
+      "uploadDraft",
+      JSON.stringify({ name: new Date().toISOString(), data: parsed })
+    );
     setGroundLabels([]);
     setEnvelopeLabels([]);
     setBatchId(null);
@@ -118,6 +143,7 @@ export default function UploadPage() {
     setBatchId(newBatchId);
     setLoading(false);
     setLabelsGenerated(true);
+    localStorage.removeItem("uploadDraft");
   };
 
   return (
@@ -180,6 +206,18 @@ export default function UploadPage() {
 
         {orders.length > 0 && (
           <div className="space-y-8">
+            <div className="text-right">
+              <button
+                onClick={() => {
+                  localStorage.removeItem("uploadDraft");
+                  setOrders([]);
+                }}
+                className="text-sm text-red-600 hover:underline mb-2"
+              >
+                🗑 Discard Draft
+              </button>
+            </div>
+
             {orders.some(
               (o) =>
                 o.valueOfProducts >= valueThreshold ||
