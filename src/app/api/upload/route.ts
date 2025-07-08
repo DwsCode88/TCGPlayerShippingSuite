@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
         batchName: order.batchName,
         orderNumber: order.orderNumber,
         trackingCode: bought.tracking_code,
+        trackingUrl: bought.tracker?.public_url || "",
         labelUrl: bought.postage_label.label_url,
         toName: order.name,
         labelCost,

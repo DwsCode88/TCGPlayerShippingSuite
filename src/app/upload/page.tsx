@@ -278,7 +278,7 @@ export default function UploadPage() {
                   ))}
                 </tbody>
               </table>
-              <p className="text-sm text-gray-600 mt-2">
+              <div className="text-sm text-gray-600 mt-2">
                 <span className="text-red-600 font-bold">Red text</span> means
                 the order meets one of the following:
                 <ul className="list-disc list-inside text-gray-700 pl-4 mt-1">
@@ -295,7 +295,7 @@ export default function UploadPage() {
                     → treated as non-machinable
                   </li>
                 </ul>
-              </p>
+              </div>
             </div>
 
             <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow p-4 flex justify-center z-50">

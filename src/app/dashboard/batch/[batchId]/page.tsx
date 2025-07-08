@@ -19,6 +19,7 @@ type Order = {
   orderNumber: string;
   toName: string;
   trackingCode: string;
+  trackingUrl?: string;
   labelUrl: string;
   labelCost: number;
   envelopeCost: number;
@@ -266,6 +267,18 @@ export default function BatchSummaryPage() {
                     <td className="p-3">{o.toName}</td>
                     <td className="p-3 text-xs text-gray-600">
                       {o.trackingCode}
+                      {o.trackingUrl && (
+                        <div>
+                          <a
+                            href={o.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 underline"
+                          >
+                            Track Package
+                          </a>
+                        </div>
+                      )}
                     </td>
                     <td className="p-3">
                       ${o.pennyCost?.toFixed(2) || "0.00"}
