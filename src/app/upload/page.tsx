@@ -3,21 +3,58 @@
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/firebase";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { fetchUserSettings } from "@/lib/userSettings";
 import { FileUp, Loader2, UploadCloud } from "lucide-react";
 
+// TYPES
+type PackageType = {
+  name: string;
+  weight: number;
+  predefined_package: string;
+  length?: string;
+  width?: string;
+  height?: string;
+};
+
+type ParsedRow = {
+  name: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  zip: string;
+  weight: number;
+  orderNumber: string;
+  valueOfProducts: number;
+  itemCount: number;
+  nonMachinable: boolean;
+  shippingShield: boolean;
+  usePennySleeve: boolean;
+  useTopLoader: boolean;
+  useEnvelope: boolean;
+  notes: string;
+  packageType: string;
+  selectedPackage: PackageType | null;
+};
+
+type LabelResult = {
+  url: string;
+  tracking: string;
+};
+
 export default function UploadPage() {
   const [user] = useAuthState(auth);
   const router = useRouter();
-  const [orders, setOrders] = useState([]);
-  const [groundLabels, setGroundLabels] = useState([]);
-  const [envelopeLabels, setEnvelopeLabels] = useState([]);
+
+  const [orders, setOrders] = useState<ParsedRow[]>([]);
+  const [groundLabels, setGroundLabels] = useState<LabelResult[]>([]);
+  const [envelopeLabels, setEnvelopeLabels] = useState<LabelResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [labelsGenerated, setLabelsGenerated] = useState(false);
-  const [batchId, setBatchId] = useState(null);
-  const [packageTypes, setPackageTypes] = useState([]);
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const [packageTypes, setPackageTypes] = useState<PackageType[]>([]);
   const [cardCountThreshold, setCardCountThreshold] = useState(8);
   const [valueThreshold, setValueThreshold] = useState(25);
   const restoredOnce = useRef(false);
@@ -32,14 +69,12 @@ export default function UploadPage() {
         if (Array.isArray(parsed?.data) && parsed.data.length > 0) {
           setOrders(parsed.data);
           restoredOnce.current = true;
-          setTimeout(
-            () =>
-              alert(
-                "✅ Restored previous session: " +
-                  new Date(parsed.name).toLocaleString()
-              ),
-            300
-          );
+          setTimeout(() => {
+            alert(
+              "✅ Restored previous session: " +
+                new Date(parsed.name).toLocaleString()
+            );
+          }, 300);
         }
       } catch (err) {
         console.warn("Failed to parse saved uploadDraft");
@@ -47,12 +82,14 @@ export default function UploadPage() {
     }
   }, [user]);
 
-  const handleCSVUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCSVUpload = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
     if (!user) return;
 
     const formData = new FormData(e.currentTarget);
-    const file = formData.get("file");
+    const file = formData.get("file") as File;
     if (!file) return;
 
     const settings = await fetchUserSettings(user.uid);
@@ -68,12 +105,12 @@ export default function UploadPage() {
     const lines = text.split("\n").filter(Boolean);
     const headers = lines[0].split(",");
 
-    const getIndex = (key) =>
+    const getIndex = (key: string) =>
       headers.findIndex((h) =>
         h.trim().toLowerCase().includes(key.toLowerCase())
       );
 
-    const parsed = lines.slice(1).map((line) => {
+    const parsed: ParsedRow[] = lines.slice(1).map((line) => {
       const values = line.split(",").map((v) => v.replace(/^"|"$/g, "").trim());
       return {
         name: `${values[getIndex("FirstName")] ?? ""} ${
@@ -112,7 +149,11 @@ export default function UploadPage() {
     setLabelsGenerated(false);
   };
 
-  const updateOrder = (index, field, value) => {
+  const updateOrder = <K extends keyof ParsedRow>(
+    index: number,
+    field: K,
+    value: ParsedRow[K]
+  ) => {
     const updated = [...orders];
     updated[index][field] = value;
     setOrders(updated);
@@ -205,7 +246,7 @@ export default function UploadPage() {
         )}
 
         {orders.length > 0 && (
-          <div className="space-y-8">
+          <>
             <div className="text-right">
               <button
                 onClick={() => {
@@ -232,6 +273,7 @@ export default function UploadPage() {
               </div>
             )}
 
+            {/* Table */}
             <div className="overflow-x-auto rounded shadow bg-white">
               <table className="min-w-full table-auto text-sm">
                 <thead className="bg-gray-100 text-xs uppercase text-gray-600">
@@ -343,7 +385,7 @@ export default function UploadPage() {
                 </a>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>
