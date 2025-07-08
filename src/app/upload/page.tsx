@@ -1,3 +1,4 @@
+// Full revamped UploadPage with extended layout and flow experience
 "use client";
 
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -6,59 +7,31 @@ import { auth } from "@/firebase";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { fetchUserSettings } from "@/lib/userSettings";
-
-type ParsedRow = {
-  name: string;
-  address1: string;
-  address2: string;
-  city: string;
-  state: string;
-  zip: string;
-  weight: number;
-  orderNumber: string;
-  valueOfProducts: number;
-  nonMachinable: boolean;
-  shippingShield: boolean;
-  usePennySleeve: boolean;
-  useTopLoader: boolean;
-  useEnvelope: boolean;
-  notes: string;
-  packageType: string;
-  selectedPackage: any | null;
-  userId?: string;
-  batchId?: string;
-  batchName?: string;
-  itemCount: number;
-};
-
-type LabelResult = {
-  url: string;
-  tracking: string;
-};
+import { FileUp, Loader2, UploadCloud } from "lucide-react";
 
 export default function UploadPage() {
   const [user] = useAuthState(auth);
   const router = useRouter();
-  const [orders, setOrders] = useState<ParsedRow[]>([]);
-  const [groundLabels, setGroundLabels] = useState<LabelResult[]>([]);
-  const [envelopeLabels, setEnvelopeLabels] = useState<LabelResult[]>([]);
+  const [orders, setOrders] = useState([]);
+  const [groundLabels, setGroundLabels] = useState([]);
+  const [envelopeLabels, setEnvelopeLabels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [labelsGenerated, setLabelsGenerated] = useState(false);
-  const [batchId, setBatchId] = useState<string | null>(null);
-  const [packageTypes, setPackageTypes] = useState<any[]>([]);
-  const [cardCountThreshold, setCardCountThreshold] = useState<number>(8);
-  const [valueThreshold, setValueThreshold] = useState<number>(25);
+  const [batchId, setBatchId] = useState(null);
+  const [packageTypes, setPackageTypes] = useState([]);
+  const [cardCountThreshold, setCardCountThreshold] = useState(8);
+  const [valueThreshold, setValueThreshold] = useState(25);
 
   useEffect(() => {
     if (!user) router.push("/login");
   }, [user]);
 
-  const handleCSVUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCSVUpload = async (e) => {
     e.preventDefault();
     if (!user) return;
 
     const formData = new FormData(e.currentTarget);
-    const file = formData.get("file") as File;
+    const file = formData.get("file");
     if (!file) return;
 
     const settings = await fetchUserSettings(user.uid);
@@ -74,44 +47,33 @@ export default function UploadPage() {
     const lines = text.split("\n").filter(Boolean);
     const headers = lines[0].split(",");
 
-    const getIndex = (key: string) =>
+    const getIndex = (key) =>
       headers.findIndex((h) =>
         h.trim().toLowerCase().includes(key.toLowerCase())
       );
 
-    const fn = getIndex("FirstName");
-    const ln = getIndex("LastName");
-    const a1 = getIndex("Address1");
-    const a2 = getIndex("Address2");
-    const city = getIndex("City");
-    const state = getIndex("State");
-    const zip = getIndex("PostalCode");
-    const weight = getIndex("Product Weight");
-    const orderNum = getIndex("Order #");
-    const valueIdx = getIndex("Value Of Products");
-    const countIdx = getIndex("Item Count");
-
-    const parsed: ParsedRow[] = lines.slice(1).map((line) => {
+    const parsed = lines.slice(1).map((line) => {
       const values = line.split(",").map((v) => v.replace(/^"|"$/g, "").trim());
-      const value = parseFloat(values[valueIdx]) || 0;
-      const count = parseInt(values[countIdx]) || 0;
-
       return {
-        name: `${values[fn] ?? ""} ${values[ln] ?? ""}`.trim(),
-        address1: values[a1],
-        address2: values[a2],
-        city: values[city],
-        state: values[state],
-        zip: values[zip],
-        weight: parseFloat(values[weight]) || 1,
-        orderNumber: values[orderNum],
-        valueOfProducts: value,
-        itemCount: count,
-        nonMachinable: count >= thresholdFromSettings,
+        name: `${values[getIndex("FirstName")] ?? ""} ${
+          values[getIndex("LastName")] ?? ""
+        }`.trim(),
+        address1: values[getIndex("Address1")],
+        address2: values[getIndex("Address2")],
+        city: values[getIndex("City")],
+        state: values[getIndex("State")],
+        zip: values[getIndex("PostalCode")],
+        weight: parseFloat(values[getIndex("Product Weight")]) || 1,
+        orderNumber: values[getIndex("Order #")],
+        valueOfProducts: parseFloat(values[getIndex("Value Of Products")]) || 0,
+        itemCount: parseInt(values[getIndex("Item Count")]) || 0,
+        nonMachinable:
+          parseInt(values[getIndex("Item Count")]) >= thresholdFromSettings,
         shippingShield: false,
         usePennySleeve: true,
         useTopLoader: false,
-        useEnvelope: value <= threshold,
+        useEnvelope:
+          parseFloat(values[getIndex("Value Of Products")]) <= threshold,
         notes: "",
         packageType: "",
         selectedPackage: null,
@@ -125,11 +87,7 @@ export default function UploadPage() {
     setLabelsGenerated(false);
   };
 
-  const updateOrder = <K extends keyof ParsedRow>(
-    index: number,
-    field: K,
-    value: ParsedRow[K]
-  ) => {
+  const updateOrder = (index, field, value) => {
     const updated = [...orders];
     updated[index][field] = value;
     setOrders(updated);
@@ -163,45 +121,93 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black p-6 pb-24">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold text-center">
-          Upload TCGplayer Shipping CSV
-        </h1>
+    <div className="min-h-screen bg-gray-100 text-gray-900 py-10 px-4">
+      <div className="max-w-7xl mx-auto space-y-10">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight">
+            📦 TCGplayer CSV Label Generator
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Upload your orders, preview rates, and print USPS shipping labels
+            fast.
+          </p>
+        </div>
 
-        <form onSubmit={handleCSVUpload} className="flex flex-col items-center">
-          <input
-            type="file"
-            name="file"
-            accept=".csv"
-            required
-            className="mb-4 border p-2 rounded w-full max-w-md"
-          />
-          <button
-            type="submit"
-            className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+        {!orders.length && (
+          <form
+            onSubmit={handleCSVUpload}
+            className="flex flex-col items-center gap-6"
           >
-            Preview Orders
-          </button>
-        </form>
+            <label className="border-2 border-dashed border-gray-400 bg-white w-full max-w-2xl p-8 flex flex-col items-center justify-center rounded-md hover:border-blue-500 hover:bg-blue-50 cursor-pointer">
+              <UploadCloud className="w-10 h-10 text-gray-500 mb-2" />
+              <span
+                id="file-label"
+                className="text-sm font-medium text-gray-700"
+              >
+                Click or drag your .csv file here
+              </span>
+              <input
+                type="file"
+                name="file"
+                accept=".csv"
+                required
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  const label = document.getElementById("file-label");
+                  if (!file) return;
+                  if (!file.name.startsWith("TCGplayer_ShippingExport_")) {
+                    alert(
+                      "❌ File must start with 'TCGplayer_ShippingExport_'"
+                    );
+                    e.target.value = "";
+                    if (label)
+                      label.innerText = "Click or drag your .csv file here";
+                  } else if (label) {
+                    label.innerText = `📄 ${file.name}`;
+                  }
+                }}
+              />
+            </label>
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded font-medium shadow-md"
+            >
+              <FileUp className="inline-block w-4 h-4 mr-2" /> Preview Orders
+            </button>
+          </form>
+        )}
 
         {orders.length > 0 && (
-          <>
-            <div className="overflow-x-auto mt-6">
-              <table className="min-w-full border text-sm">
-                <thead className="bg-gray-100 text-xs uppercase">
+          <div className="space-y-8">
+            {orders.some(
+              (o) =>
+                o.valueOfProducts >= valueThreshold ||
+                o.itemCount >= cardCountThreshold
+            ) && (
+              <div className="bg-white border-l-4 border-yellow-500 p-4 rounded shadow">
+                <p className="text-sm text-yellow-700">
+                  Some orders are <strong>flagged in red</strong> because they
+                  are high value or high item count and may need upgraded
+                  postage.
+                </p>
+              </div>
+            )}
+
+            <div className="overflow-x-auto rounded shadow bg-white">
+              <table className="min-w-full table-auto text-sm">
+                <thead className="bg-gray-100 text-xs uppercase text-gray-600">
                   <tr>
-                    <th className="p-2 text-center">#</th>
+                    <th className="p-2">#</th>
                     <th className="p-2">Order #</th>
                     <th className="p-2">Name</th>
-                    <th className="p-2">Address</th>
                     <th className="p-2">City</th>
                     <th className="p-2">State</th>
                     <th className="p-2">Zip</th>
-                    <th className="p-2 text-center">Weight</th>
-                    <th className="p-2 text-center">Value</th>
-                    <th className="p-2 text-center">Items</th>
-                    <th className="p-2 text-center">Package</th>
+                    <th className="p-2">Weight</th>
+                    <th className="p-2">Value</th>
+                    <th className="p-2">Items</th>
+                    <th className="p-2">Package</th>
                     <th className="p-2">Notes</th>
                   </tr>
                 </thead>
@@ -211,26 +217,19 @@ export default function UploadPage() {
                       <td className="p-2 text-center">{i + 1}</td>
                       <td className="p-2">{o.orderNumber}</td>
                       <td className="p-2">{o.name}</td>
-                      <td className="p-2">
-                        {o.address1} {o.address2}
-                      </td>
                       <td className="p-2">{o.city}</td>
                       <td className="p-2">{o.state}</td>
                       <td className="p-2">{o.zip}</td>
                       <td className="p-2 text-center">{o.weight}</td>
-
-                      {/* 🔴 Highlight value >= 25 */}
                       <td
                         className={`p-2 text-center ${
-                          o.valueOfProducts >= 25
+                          o.valueOfProducts >= valueThreshold
                             ? "text-red-600 font-bold"
                             : ""
                         }`}
                       >
                         ${o.valueOfProducts.toFixed(2)}
                       </td>
-
-                      {/* 🔴 Highlight item count ≥ threshold */}
                       <td
                         className={`p-2 text-center ${
                           o.itemCount >= cardCountThreshold
@@ -240,10 +239,9 @@ export default function UploadPage() {
                       >
                         {o.itemCount}
                       </td>
-
                       <td className="p-2">
                         <select
-                          className="border p-1 rounded text-xs"
+                          className="border rounded p-1 text-xs"
                           value={o.packageType}
                           onChange={(e) => {
                             const pkgName = e.target.value;
@@ -262,7 +260,6 @@ export default function UploadPage() {
                           ))}
                         </select>
                       </td>
-
                       <td className="p-2">
                         <input
                           type="text"
@@ -278,92 +275,36 @@ export default function UploadPage() {
                   ))}
                 </tbody>
               </table>
-              <div className="text-sm text-gray-600 mt-2">
-                <span className="text-red-600 font-bold">Red text</span> means
-                the order meets one of the following:
-                <ul className="list-disc list-inside text-gray-700 pl-4 mt-1">
-                  <li>
-                    <span className="text-red-600 font-bold">
-                      Value ≥ ${valueThreshold}
-                    </span>{" "}
-                    → treated as high value (non-envelope)
-                  </li>
-                  <li>
-                    <span className="text-red-600 font-bold">
-                      Item Count ≥ {cardCountThreshold}
-                    </span>{" "}
-                    → treated as non-machinable
-                  </li>
-                </ul>
+            </div>
+
+            {!labelsGenerated && (
+              <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow p-4 flex justify-center z-50">
+                <button
+                  onClick={generateLabels}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded shadow-md font-medium flex items-center gap-2"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="animate-spin w-4 h-4" /> Generating...
+                    </>
+                  ) : (
+                    "🚀 Generate Labels"
+                  )}
+                </button>
               </div>
-            </div>
+            )}
 
-            <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow p-4 flex justify-center z-50">
-              <button
-                onClick={generateLabels}
-                className="bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700"
-                disabled={loading || labelsGenerated}
-              >
-                {loading
-                  ? "Generating..."
-                  : labelsGenerated
-                  ? "Labels Generated"
-                  : "🚀 Generate Labels"}
-              </button>
-            </div>
-          </>
-        )}
-
-        {groundLabels.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-2">
-              📦 Ground Advantage Labels
-            </h2>
-            <ul className="space-y-2">
-              {groundLabels.map((label, i) => (
-                <li key={`g-${i}`}>
-                  <a
-                    href={label.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    Label {i + 1}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {envelopeLabels.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-2">✉️ Envelope Labels</h2>
-            <ul className="space-y-2">
-              {envelopeLabels.map((label, i) => (
-                <li key={`e-${i}`}>
-                  <a
-                    href={label.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    Label {i + 1}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {batchId && (
-          <div className="text-center mt-6">
-            <a
-              href={`/dashboard/batch/${batchId}`}
-              className="inline-block bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800"
-            >
-              🔍 View Batch and Print Postage
-            </a>
+            {batchId && (
+              <div className="text-center mt-12">
+                <a
+                  href={`/dashboard/batch/${batchId}`}
+                  className="inline-block bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded font-medium"
+                >
+                  🔍 View Batch & Print Labels
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>
