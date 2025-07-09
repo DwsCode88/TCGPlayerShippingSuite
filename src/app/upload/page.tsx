@@ -9,6 +9,7 @@ import { fetchUserSettings } from "@/lib/userSettings";
 import { FileUp, Loader2, UploadCloud } from "lucide-react";
 import { toast } from "react-hot-toast";
 import SidebarLayout from "@/components/SidebarLayout";
+import Link from "next/link";
 
 type PackageType = {
   name: string;
@@ -194,7 +195,6 @@ function UploadContent() {
           </p>
         </div>
 
-        {/* Upload form */}
         {!orders.length && (
           <form
             onSubmit={handleCSVUpload}
@@ -240,8 +240,133 @@ function UploadContent() {
           </form>
         )}
 
-        {/* Results / Order Table / Generate Button... */}
-        {/* (Omitted here for brevity. You can paste your full results section below this comment.) */}
+        {orders.length > 0 && (
+          <>
+            <div className="text-right mb-4">
+              <button
+                onClick={() => {
+                  localStorage.removeItem("uploadDraft");
+                  setOrders([]);
+                }}
+                className="text-sm text-red-600 hover:underline"
+              >
+                🗑 Discard Draft
+              </button>
+            </div>
+
+            <div className="overflow-x-auto rounded shadow bg-white">
+              <table className="min-w-full table-auto text-sm">
+                <thead className="bg-gray-100 text-xs uppercase text-gray-600">
+                  <tr>
+                    <th className="p-2">#</th>
+                    <th className="p-2">Order #</th>
+                    <th className="p-2">Name</th>
+                    <th className="p-2">City</th>
+                    <th className="p-2">State</th>
+                    <th className="p-2">Zip</th>
+                    <th className="p-2">Weight</th>
+                    <th className="p-2">Value</th>
+                    <th className="p-2">Items</th>
+                    <th className="p-2">Package</th>
+                    <th className="p-2">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((o, i) => (
+                    <tr key={i} className="even:bg-gray-50">
+                      <td className="p-2 text-center">{i + 1}</td>
+                      <td className="p-2">{o.orderNumber}</td>
+                      <td className="p-2">{o.name}</td>
+                      <td className="p-2">{o.city}</td>
+                      <td className="p-2">{o.state}</td>
+                      <td className="p-2">{o.zip}</td>
+                      <td className="p-2 text-center">{o.weight}</td>
+                      <td
+                        className={`p-2 text-center ${
+                          o.valueOfProducts >= valueThreshold
+                            ? "text-red-600 font-bold"
+                            : ""
+                        }`}
+                      >
+                        ${o.valueOfProducts.toFixed(2)}
+                      </td>
+                      <td
+                        className={`p-2 text-center ${
+                          o.itemCount >= cardCountThreshold
+                            ? "text-red-600 font-bold"
+                            : ""
+                        }`}
+                      >
+                        {o.itemCount}
+                      </td>
+                      <td className="p-2">
+                        <select
+                          className="border rounded p-1 text-xs"
+                          value={o.packageType}
+                          onChange={(e) => {
+                            const pkgName = e.target.value;
+                            const pkg = packageTypes.find(
+                              (p) => p.name === pkgName
+                            );
+                            updateOrder(i, "packageType", pkgName);
+                            updateOrder(i, "selectedPackage", pkg || null);
+                          }}
+                        >
+                          <option value="">-- Select --</option>
+                          {packageTypes.map((pkg) => (
+                            <option key={pkg.name} value={pkg.name}>
+                              {pkg.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          className="w-full border rounded p-1"
+                          value={o.notes}
+                          onChange={(e) =>
+                            updateOrder(i, "notes", e.target.value)
+                          }
+                          placeholder="optional"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {!labelsGenerated && (
+              <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow p-4 flex justify-center z-50">
+                <button
+                  onClick={generateLabels}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded shadow-md font-medium flex items-center gap-2"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="animate-spin w-4 h-4" /> Generating...
+                    </>
+                  ) : (
+                    "🚀 Generate Labels"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {batchId && (
+              <div className="text-center mt-12">
+                <Link
+                  href={`/dashboard/batch/${batchId}`}
+                  className="inline-block bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded font-medium"
+                >
+                  🔍 View Batch & Print Labels
+                </Link>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
