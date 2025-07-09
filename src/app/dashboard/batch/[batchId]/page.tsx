@@ -57,9 +57,11 @@ export default function BatchSummaryPage() {
         const meta = batchSnap.data();
         setBatchName(meta.batchName || "");
         setBatchNotes(meta.notes || "");
-        setCreatedDate(
-          meta.createdAt ? new Date(meta.createdAt).toLocaleString() : ""
-        );
+
+        // ✅ Fix invalid date
+        const timestamp = meta.createdAt?.toDate?.();
+        setCreatedDate(timestamp ? timestamp.toLocaleString() : "Unknown");
+
         setArchived(meta.archived || false);
       }
 
@@ -71,10 +73,11 @@ export default function BatchSummaryPage() {
 
   const sum = (field: keyof Order) =>
     orders
-      .reduce((acc, o) => {
-        const value = o[field];
-        return acc + (typeof value === "number" ? value : 0);
-      }, 0)
+      .reduce(
+        (acc, o) =>
+          acc + (typeof o[field] === "number" ? (o[field] as number) : 0),
+        0
+      )
       .toFixed(2);
 
   const debouncedSave = debounce(async (text: string) => {
@@ -94,45 +97,24 @@ export default function BatchSummaryPage() {
     const url = URL.createObjectURL(blob);
 
     const now = new Date();
-    const dateStr = now
-      .toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-      })
-      .replace(/ /g, "-");
-
-    const timeStr = now
-      .toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      })
-      .replace(/:/g, "-");
+    const filename = `Tcgtracking_${now
+      .toLocaleDateString()
+      .replace(/\//g, "-")}_${now.toLocaleTimeString().replace(/:/g, "-")}`;
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Tcgtracking_${dateStr}_${timeStr}.csv`;
+    a.download = `${filename}.csv`;
     a.click();
   };
 
-  const downloadByType = async (labelUrls: string[], filename: string) => {
-    if (!labelUrls.length) {
-      alert("No labels found for this type.");
-      return;
-    }
-
+  const downloadByType = async (urls: string[], filename: string) => {
+    if (!urls.length) return alert("No labels found.");
     const res = await fetch("/api/labels/merge", {
       method: "POST",
-      body: JSON.stringify(labelUrls),
+      body: JSON.stringify(urls),
       headers: { "Content-Type": "application/json" },
     });
-
-    if (!res.ok) {
-      alert("Failed to generate PDF");
-      return;
-    }
-
+    if (!res.ok) return alert("Failed to generate PDF");
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -141,38 +123,36 @@ export default function BatchSummaryPage() {
     a.click();
   };
 
-  const envelopeOrders = orders.filter((o) => o.useEnvelope === true);
-  const groundOrders = orders.filter((o) => o.useEnvelope === false);
+  const envelopeOrders = orders.filter((o) => o.useEnvelope);
+  const groundOrders = orders.filter((o) => !o.useEnvelope);
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="mb-6 flex justify-between items-start flex-wrap gap-2">
+    <div className="max-w-7xl mx-auto px-6 py-10 text-white">
+      <div className="mb-8 flex justify-between items-start flex-wrap gap-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">
-            📦 Batch Summary
-          </h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold mb-1">📦 Batch Summary</h1>
+          <p className="text-gray-400">
             Batch: <strong>{batchName}</strong>
           </p>
           <p className="text-sm text-gray-500">Created: {createdDate}</p>
           {archived && (
-            <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded">
+            <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold text-red-600 bg-red-100 rounded">
               ARCHIVED
             </span>
           )}
         </div>
         <Link
           href="/dashboard/history"
-          className="text-blue-600 hover:underline text-sm mt-1"
+          className="text-blue-400 hover:underline text-sm mt-1"
         >
           ← Back to History
         </Link>
       </div>
 
-      <div className="mb-6">
+      <div className="bg-[#1f1f1f] border border-gray-700 rounded-lg p-4 mb-8 shadow-sm">
         <label
           htmlFor="notes"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-gray-300 mb-1"
         >
           📝 Batch Notes
         </label>
@@ -181,22 +161,21 @@ export default function BatchSummaryPage() {
           rows={3}
           value={batchNotes}
           onChange={(e) => {
-            const val = e.target.value;
-            setBatchNotes(val);
-            debouncedSave(val);
+            setBatchNotes(e.target.value);
+            debouncedSave(e.target.value);
           }}
-          className="mt-1 w-full border p-2 rounded text-sm"
+          className="w-full border border-gray-700 bg-black p-2 rounded text-sm text-white placeholder:text-gray-500"
           placeholder="Add notes about this batch (auto-saved)"
         />
         <p className="text-xs text-gray-500 mt-1">
-          🧠 Notes auto-save while typing...
+          🧠 Notes auto-save while typing…
         </p>
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-500">Loading...</p>
+        <p className="text-center text-gray-400">Loading…</p>
       ) : orders.length === 0 ? (
-        <p className="text-center text-gray-500">
+        <p className="text-center text-gray-400">
           No orders found for this batch.
         </p>
       ) : (
@@ -204,9 +183,9 @@ export default function BatchSummaryPage() {
           <div className="flex flex-wrap items-center gap-4 mb-6">
             <button
               onClick={handleDownloadCSV}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
             >
-              📄 Download TCGplayer CSV
+              📄 Download CSV
             </button>
             <button
               onClick={() =>
@@ -215,9 +194,9 @@ export default function BatchSummaryPage() {
                   "batch-all-labels.pdf"
                 )
               }
-              className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 text-sm"
+              className="bg-black hover:bg-gray-900 text-white px-4 py-2 rounded text-sm"
             >
-              🖨 Download All Labels (PDF)
+              🖨 All Labels
             </button>
             <button
               onClick={() =>
@@ -226,9 +205,9 @@ export default function BatchSummaryPage() {
                   "batch-envelope-labels.pdf"
                 )
               }
-              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm"
             >
-              ✉️ Download Envelope Labels
+              ✉️ Envelope Labels
             </button>
             <button
               onClick={() =>
@@ -237,35 +216,38 @@ export default function BatchSummaryPage() {
                   "batch-ground-labels.pdf"
                 )
               }
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
             >
-              🚚 Download Ground Advantage Labels
+              🚚 Ground Advantage
             </button>
           </div>
 
-          <div className="overflow-x-auto bg-white shadow rounded-lg">
-            <table className="min-w-full text-sm text-gray-800">
-              <thead className="bg-gray-100 text-xs font-semibold uppercase text-gray-500">
+          <div className="overflow-x-auto bg-[#1a1a1a] border border-gray-800 shadow rounded-lg">
+            <table className="min-w-full text-sm text-left text-white">
+              <thead className="bg-[#2a2a2a] text-xs text-gray-400 sticky top-0">
                 <tr>
-                  <th className="p-3 text-left">Order #</th>
-                  <th className="p-3 text-left">Name</th>
-                  <th className="p-3 text-left">Tracking</th>
-                  <th className="p-3 text-left">💧 Sleeve</th>
-                  <th className="p-3 text-left">📎 Loader</th>
-                  <th className="p-3 text-left">✉️ Envelope</th>
-                  <th className="p-3 text-left">🛡 Shield</th>
-                  <th className="p-3 text-left">💰 Postage</th>
-                  <th className="p-3 text-left">🧾 Total</th>
-                  <th className="p-3 text-left">📝 Notes</th>
-                  <th className="p-3 text-left">Label</th>
+                  <th className="p-3">Order #</th>
+                  <th className="p-3">Name</th>
+                  <th className="p-3">Tracking</th>
+                  <th className="p-3">💧 Sleeve</th>
+                  <th className="p-3">📎 Loader</th>
+                  <th className="p-3">✉️ Envelope</th>
+                  <th className="p-3">🛡 Shield</th>
+                  <th className="p-3">💰 Postage</th>
+                  <th className="p-3">🧾 Total</th>
+                  <th className="p-3">📝 Notes</th>
+                  <th className="p-3">Label</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((o, i) => (
-                  <tr key={i} className="border-t hover:bg-gray-50">
+                  <tr
+                    key={i}
+                    className="border-t border-gray-800 hover:bg-[#2a2a2a]"
+                  >
                     <td className="p-3">{o.orderNumber}</td>
                     <td className="p-3">{o.toName}</td>
-                    <td className="p-3 text-xs text-gray-600">
+                    <td className="p-3 text-xs">
                       {o.trackingCode}
                       {o.trackingUrl && (
                         <div>
@@ -273,9 +255,9 @@ export default function BatchSummaryPage() {
                             href={o.trackingUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-500 underline"
+                            className="inline-block text-blue-400 hover:underline text-xs"
                           >
-                            Track Package
+                            🔗 Track
                           </a>
                         </div>
                       )}
@@ -298,7 +280,7 @@ export default function BatchSummaryPage() {
                     <td className="p-3 font-semibold">
                       ${o.totalCost?.toFixed(2) || "0.00"}
                     </td>
-                    <td className="p-3 text-xs text-gray-600">
+                    <td className="p-3 text-xs text-gray-400">
                       {o.notes || ""}
                     </td>
                     <td className="p-3">
@@ -306,16 +288,16 @@ export default function BatchSummaryPage() {
                         href={o.labelUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="inline-block text-blue-400 hover:underline text-sm"
                       >
-                        View
+                        🔍 View
                       </a>
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="bg-gray-50 font-semibold">
+              <tfoot className="bg-[#2a2a2a] text-sm text-white font-semibold">
+                <tr>
                   <td colSpan={3} className="p-3">
                     Totals
                   </td>
