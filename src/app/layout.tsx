@@ -1,7 +1,6 @@
 // app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
-import SidebarLayout from "@/components/SidebarLayout";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
@@ -17,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SidebarLayout>{children}</SidebarLayout>
+        {children}
         <Toaster position="top-right" />
       </body>
     </html>
