@@ -59,11 +59,11 @@ function UploadContent() {
   const [packageTypes, setPackageTypes] = useState<PackageType[]>([]);
   const [cardCountThreshold, setCardCountThreshold] = useState(8);
   const [valueThreshold, setValueThreshold] = useState(25);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const restoredOnce = useRef(false);
 
   useEffect(() => {
     if (!user || restoredOnce.current) return;
-
     const saved = localStorage.getItem("uploadDraft");
     if (saved && !orders.length) {
       try {
@@ -79,21 +79,20 @@ function UploadContent() {
     }
   }, [user]);
 
-  const handleCSVUpload = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!user) return;
+  const handleFile = async (file: File) => {
+    if (!user || !file) return;
 
-    const formData = new FormData(e.currentTarget);
-    const file = formData.get("file") as File;
-    if (!file) return;
+    if (!file.name.startsWith("TCGplayer_ShippingExport_")) {
+      toast.error("❌ File must start with 'TCGplayer_ShippingExport_'");
+      return;
+    }
 
     const settings = await fetchUserSettings(user.uid);
     const thresholdFromSettings = settings?.cardCountThreshold ?? 8;
-    setCardCountThreshold(thresholdFromSettings);
-
     const threshold = settings?.valueThreshold ?? 25;
-    setValueThreshold(threshold);
     const packages = settings?.packageTypes || [];
+    setCardCountThreshold(thresholdFromSettings);
+    setValueThreshold(threshold);
     setPackageTypes(packages);
 
     const text = await file.text();
@@ -144,16 +143,6 @@ function UploadContent() {
     setLabelsGenerated(false);
   };
 
-  const updateOrder = <K extends keyof ParsedRow>(
-    index: number,
-    field: K,
-    value: ParsedRow[K]
-  ) => {
-    const updated = [...orders];
-    updated[index][field] = value;
-    setOrders(updated);
-  };
-
   const generateLabels = async () => {
     if (!user || loading) return;
     setLoading(true);
@@ -182,6 +171,16 @@ function UploadContent() {
     localStorage.removeItem("uploadDraft");
   };
 
+  const updateOrder = <K extends keyof ParsedRow>(
+    index: number,
+    field: K,
+    value: ParsedRow[K]
+  ) => {
+    const updated = [...orders];
+    updated[index][field] = value;
+    setOrders(updated);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 py-10 px-4">
       <div className="max-w-7xl mx-auto space-y-10">
@@ -197,15 +196,24 @@ function UploadContent() {
 
         {!orders.length && (
           <form
-            onSubmit={handleCSVUpload}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const file = (
+                e.currentTarget.elements.namedItem("file") as HTMLInputElement
+              )?.files?.[0];
+              if (file) handleFile(file);
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const file = e.dataTransfer.files?.[0];
+              if (file) handleFile(file);
+            }}
             className="flex flex-col items-center gap-6"
           >
             <label className="border-2 border-dashed border-gray-400 bg-white w-full max-w-2xl p-8 flex flex-col items-center justify-center rounded-md hover:border-blue-500 hover:bg-blue-50 cursor-pointer">
               <UploadCloud className="w-10 h-10 text-gray-500 mb-2" />
-              <span
-                id="file-label"
-                className="text-sm font-medium text-gray-700"
-              >
+              <span className="text-sm font-medium text-gray-700">
                 Click or drag your .csv file here
               </span>
               <input
@@ -214,21 +222,6 @@ function UploadContent() {
                 accept=".csv"
                 required
                 className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  const label = document.getElementById("file-label");
-                  if (!file) return;
-                  if (!file.name.startsWith("TCGplayer_ShippingExport_")) {
-                    toast.error(
-                      "❌ File must start with 'TCGplayer_ShippingExport_'"
-                    );
-                    e.target.value = "";
-                    if (label)
-                      label.innerText = "Click or drag your .csv file here";
-                  } else if (label) {
-                    label.innerText = `📄 ${file.name}`;
-                  }
-                }}
               />
             </label>
             <button
@@ -335,6 +328,21 @@ function UploadContent() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mt-2 space-y-1">
+              {orders.some((o) => o.valueOfProducts >= valueThreshold) && (
+                <p className="text-sm text-red-600">
+                  🔴 Rows highlighted in red indicate orders that will ship via{" "}
+                  <strong>USPS Ground Advantage</strong> due to high item value.
+                </p>
+              )}
+              {orders.some((o) => o.itemCount >= cardCountThreshold) && (
+                <p className="text-sm text-red-600">
+                  🔴 Rows highlighted in red indicate orders that will be marked{" "}
+                  <strong>Non-Machinable</strong> due to card count.
+                </p>
+              )}
             </div>
 
             {!labelsGenerated && (
