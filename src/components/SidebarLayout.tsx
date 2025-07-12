@@ -1,11 +1,17 @@
-// components/SidebarLayout.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebase";
-import { Home, UploadCloud, History, Settings, LogOut } from "lucide-react";
+import {
+  Home,
+  UploadCloud,
+  History,
+  Settings,
+  LogOut,
+  CreditCard,
+} from "lucide-react";
 
 const links = [
   {
@@ -27,6 +33,11 @@ const links = [
     href: "/dashboard/settings",
     label: "Settings",
     icon: <Settings className="w-4 h-4 mr-2" />,
+  },
+  {
+    href: "/dashboard/billing",
+    label: "Billing",
+    icon: <CreditCard className="w-4 h-4 mr-2" />,
   },
 ];
 
