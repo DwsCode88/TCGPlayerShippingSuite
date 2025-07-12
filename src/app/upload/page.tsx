@@ -162,9 +162,21 @@ function UploadContent() {
       headers: { "Content-Type": "application/json" },
     });
 
-    const data = await res.json();
-    setGroundLabels(data.groundAdvantage || []);
-    setEnvelopeLabels(data.other || []);
+    const result = await res.json();
+
+    if (!res.ok) {
+      if (res.status === 403 && result?.redirect) {
+        toast.error(result.error || "Free plan limit reached.");
+        router.push(result.redirect);
+      } else {
+        toast.error(result.error || "Something went wrong.");
+      }
+      setLoading(false);
+      return;
+    }
+
+    setGroundLabels(result.groundAdvantage || []);
+    setEnvelopeLabels(result.other || []);
     setBatchId(newBatchId);
     setLoading(false);
     setLabelsGenerated(true);

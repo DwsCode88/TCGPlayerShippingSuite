@@ -104,8 +104,22 @@ export default function LoginPage() {
     try {
       const res = await signInWithGoogle();
       if (res?.user) {
-        await saveUserProfile(res.user.uid);
+        const { uid, email, displayName, phoneNumber } = res.user;
+
+        await setDoc(
+          doc(db, "users", uid),
+          {
+            email: email || "",
+            fullName: displayName || "",
+            phone: phoneNumber || "",
+            storeName: "", // let user fill this later
+            createdAt: Date.now(),
+          },
+          { merge: true }
+        );
+
         toast.success("✅ Signed in with Google");
+        router.push("/dashboard");
       }
     } catch (err) {
       console.error(err);

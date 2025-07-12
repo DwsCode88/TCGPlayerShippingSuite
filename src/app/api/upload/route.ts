@@ -1,6 +1,16 @@
+// /app/api/upload/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/firebase";
-import { setDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
+import {
+  setDoc,
+  doc,
+  serverTimestamp,
+  getDoc,
+  collection,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(req: NextRequest) {
@@ -8,10 +18,58 @@ export async function POST(req: NextRequest) {
   const groundAdvantage: { url: string; tracking: string }[] = [];
   const envelopes: { url: string; tracking: string }[] = [];
 
+  if (!orders?.length) {
+    return NextResponse.json({ error: "No orders provided" }, { status: 400 });
+  }
+
   const first = orders[0];
   const now = new Date();
 
-  if (first?.batchId) {
+  const userId = first?.userId;
+  if (!userId) {
+    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+  }
+
+  const userRef = doc(db, "users", userId);
+  const userSnap = await getDoc(userRef);
+  const userSettings = userSnap.exists() ? userSnap.data() : {};
+  const userApiKey = userSettings.easypostApiKey;
+  const fromAddress = userSettings.fromAddress;
+
+  if (!userApiKey || !fromAddress) {
+    return NextResponse.json(
+      { error: "User settings incomplete" },
+      { status: 400 }
+    );
+  }
+
+  const authHeader = `Basic ${Buffer.from(userApiKey + ":").toString(
+    "base64"
+  )}`;
+
+  // Usage check for hybrid billing
+  const usageRef = doc(db, "usage", userId);
+  const usageSnap = await getDoc(usageRef);
+  const usage = usageSnap.exists() ? usageSnap.data() : { count: 0, month: "" };
+
+  const currentMonth = new Date().toISOString().slice(0, 7); // e.g. "2025-07"
+  const usageCount = usage?.month === currentMonth ? usage.count : 0;
+  const isPro = userSettings?.plan === "pro";
+  const newLabelCount = orders.length;
+
+  if (!isPro && usageCount + newLabelCount > 10) {
+    return NextResponse.json(
+      {
+        error:
+          "🚫 You've hit your 10-label Free plan limit. Upgrade to Pro for unlimited labels.",
+        redirect: "/dashboard/billing",
+      },
+      { status: 403 }
+    );
+  }
+
+  // Save batch
+  if (first.batchId) {
     await setDoc(
       doc(db, "batches", first.batchId),
       {
@@ -21,7 +79,7 @@ export async function POST(req: NextRequest) {
         createdAtDisplay: now.toLocaleString(),
         archived: false,
         notes: "",
-        userId: first.userId || "unknown",
+        userId,
       },
       { merge: true }
     );
@@ -29,22 +87,8 @@ export async function POST(req: NextRequest) {
 
   for (const order of orders) {
     try {
-      const userRef = doc(db, "users", order.userId);
-      const userSnap = await getDoc(userRef);
-      const userSettings = userSnap.exists() ? userSnap.data() : {};
-      const userApiKey = userSettings.easypostApiKey;
-
-      if (!userApiKey) continue;
-
-      const fromAddress = userSettings.fromAddress;
-      if (!fromAddress) continue;
-
-      const authHeader = `Basic ${Buffer.from(userApiKey + ":").toString(
-        "base64"
-      )}`;
       const isHighValue = order.useEnvelope === false;
 
-      // Custom logic to support predefined package or dimensions
       const customPackage = order.selectedPackage || {};
       const parcel = customPackage.name
         ? {
@@ -159,7 +203,7 @@ export async function POST(req: NextRequest) {
         rate.service === "GroundAdvantage" ? "ground" : "envelope";
 
       await setDoc(doc(db, "orders", orderId), {
-        userId: order.userId || "unknown",
+        userId,
         batchId: order.batchId,
         batchName: order.batchName,
         orderNumber: order.orderNumber,
@@ -196,6 +240,23 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error(`🔥 Error processing order ${order.name}:`, err);
     }
+  }
+
+  // Update usage count if user is on Free plan
+  if (!isPro) {
+    const newCount = usageCount + orders.length;
+    await setDoc(
+      usageRef,
+      {
+        month: currentMonth,
+        count: newCount,
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
+    console.log(
+      `✅ Updated usage for ${userId}: ${newCount} labels this month`
+    );
   }
 
   return NextResponse.json({ groundAdvantage, envelopes });
