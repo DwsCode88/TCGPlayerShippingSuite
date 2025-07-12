@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
 
   const currentMonth = new Date().toISOString().slice(0, 7); // e.g. "2025-07"
   const usageCount = usage?.month === currentMonth ? usage.count : 0;
-  const isPro = userSettings?.plan === "pro";
+
+  const isPro = userSettings?.isPro === true || userSettings?.plan === "pro";
   const newLabelCount = orders.length;
 
   if (!isPro && usageCount + newLabelCount > 10) {
