@@ -1,16 +1,6 @@
-// /app/api/upload/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/firebase";
-import {
-  setDoc,
-  doc,
-  serverTimestamp,
-  getDoc,
-  collection,
-  getDocs,
-  updateDoc,
-} from "firebase/firestore";
+import { setDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(req: NextRequest) {
@@ -24,8 +14,8 @@ export async function POST(req: NextRequest) {
 
   const first = orders[0];
   const now = new Date();
-
   const userId = first?.userId;
+
   if (!userId) {
     return NextResponse.json({ error: "Missing userId" }, { status: 400 });
   }
@@ -47,14 +37,11 @@ export async function POST(req: NextRequest) {
     "base64"
   )}`;
 
-  // Usage check for hybrid billing
   const usageRef = doc(db, "usage", userId);
   const usageSnap = await getDoc(usageRef);
   const usage = usageSnap.exists() ? usageSnap.data() : { count: 0, month: "" };
-
-  const currentMonth = new Date().toISOString().slice(0, 7); // e.g. "2025-07"
+  const currentMonth = new Date().toISOString().slice(0, 7);
   const usageCount = usage?.month === currentMonth ? usage.count : 0;
-
   const isPro = userSettings?.isPro === true || userSettings?.plan === "pro";
   const newLabelCount = orders.length;
 
@@ -69,7 +56,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Save batch
   if (first.batchId) {
     await setDoc(
       doc(db, "batches", first.batchId),
@@ -104,6 +90,26 @@ export async function POST(req: NextRequest) {
             weight: isHighValue ? 3 : Math.max(1, order.weight || 1),
           };
 
+      // ✅ Use custom address if provided
+      const to_address = order.customAddress
+        ? {
+            name: order.customAddress.name,
+            street1: order.customAddress.street1,
+            city: order.customAddress.city,
+            state: order.customAddress.state,
+            zip: order.customAddress.zip?.replace(/\\D/g, ""),
+            country: order.customAddress.country || "US",
+          }
+        : {
+            name: order.name,
+            street1: order.address1,
+            street2: order.address2,
+            city: order.city,
+            state: order.state,
+            zip: order.zip?.replace(/\\D/g, ""),
+            country: "US",
+          };
+
       const createRes = await fetch("https://api.easypost.com/v2/shipments", {
         method: "POST",
         headers: {
@@ -112,15 +118,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           shipment: {
-            to_address: {
-              name: order.name,
-              street1: order.address1,
-              street2: order.address2,
-              city: order.city,
-              state: order.state,
-              zip: order.zip?.replace(/\D/g, ""),
-              country: "US",
-            },
+            to_address,
             from_address: {
               name: fromAddress.name,
               street1: fromAddress.street1,
@@ -211,7 +209,7 @@ export async function POST(req: NextRequest) {
         trackingCode: bought.tracking_code,
         trackingUrl: bought.tracker?.public_url || "",
         labelUrl: bought.postage_label.label_url,
-        toName: order.name,
+        toName: to_address.name,
         labelCost,
         envelopeCost,
         shieldCost,
@@ -239,11 +237,13 @@ export async function POST(req: NextRequest) {
         envelopes.push(labelData);
       }
     } catch (err) {
-      console.error(`🔥 Error processing order ${order.name}:`, err);
+      console.error(
+        `🔥 Error processing order ${order.name || order.customAddress?.name}:`,
+        err
+      );
     }
   }
 
-  // Update usage count if user is on Free plan
   if (!isPro) {
     const newCount = usageCount + orders.length;
     await setDoc(

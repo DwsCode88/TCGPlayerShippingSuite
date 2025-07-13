@@ -15,6 +15,11 @@ import {
 
 const links = [
   {
+    href: "/dashboard/single-label",
+    label: "Single Label",
+    icon: <UploadCloud className="w-4 h-4 mr-2" />,
+  },
+  {
     href: "/dashboard",
     label: "Dashboard",
     icon: <Home className="w-4 h-4 mr-2" />,
@@ -65,10 +70,8 @@ export default function SidebarLayout({
             <Link
               key={href}
               href={href}
-              className={`flex items-center px-3 py-2 rounded text-sm font-medium transition ${
-                pathname === href
-                  ? "bg-gray-800 text-white"
-                  : "text-gray-300 hover:bg-gray-800 hover:text-white"
+              className={`flex items-center px-3 py-2 rounded hover:bg-gray-800 ${
+                pathname === href ? "bg-gray-800" : ""
               }`}
             >
               {icon}
@@ -76,18 +79,15 @@ export default function SidebarLayout({
             </Link>
           ))}
         </nav>
-        <hr className="my-6 border-gray-700" />
         <button
           onClick={handleSignOut}
-          className="flex items-center px-3 py-2 w-full text-left bg-red-600 hover:bg-red-700 rounded text-sm font-medium transition"
+          className="mt-6 flex items-center text-sm text-red-400 hover:text-red-600"
         >
           <LogOut className="w-4 h-4 mr-2" />
-          Sign Out
+          Sign out
         </button>
       </aside>
-      <main className="flex-1 p-6 bg-gray-50 text-black dark:bg-gray-900 dark:text-white">
-        {children}
-      </main>
+      <main className="flex-1 p-6">{children}</main>
     </div>
   );
 }
