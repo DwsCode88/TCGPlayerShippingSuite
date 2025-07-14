@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ✅ Label limit logic
   const usageRef = doc(db, "usage", order.userId);
   const usageSnap = await getDoc(usageRef);
   const usage = usageSnap.exists() ? usageSnap.data() : { count: 0, month: "" };
@@ -103,6 +102,7 @@ export async function POST(req: NextRequest) {
     });
 
     const shipment = await createRes.json();
+
     if (shipment.error || !shipment.rates?.length) {
       return NextResponse.json(
         { error: "Shipment creation failed" },
@@ -110,7 +110,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rate = shipment.rates[0];
+    // ✅ Filter for USPS First or GroundAdvantage
+    const validServices = ["First", "GroundAdvantage"];
+    const filteredRates = shipment.rates.filter(
+      (r: any) => r.carrier === "USPS" && validServices.includes(r.service)
+    );
+
+    const rate = filteredRates.reduce(
+      (lowest: any, current: any) =>
+        parseFloat(current.rate) < parseFloat(lowest?.rate || "Infinity")
+          ? current
+          : lowest,
+      null
+    );
+
+    if (!rate) {
+      return NextResponse.json(
+        { error: "No USPS First-Class or Ground Advantage rate available" },
+        { status: 400 }
+      );
+    }
 
     const buyRes = await fetch(
       `https://api.easypost.com/v2/shipments/${shipment.id}/buy`,
@@ -132,7 +151,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Save to batch + order collections
     const batchId = "single-labels";
     const orderId = uuidv4();
 
@@ -162,11 +180,10 @@ export async function POST(req: NextRequest) {
       useEnvelope: true,
       createdAt: Date.now(),
       dashboardTimestamp: new Date().toISOString(),
-      labelType: "envelope",
+      labelType: rate.service === "GroundAdvantage" ? "ground" : "envelope",
       notes: "",
     });
 
-    // ✅ Update usage for Free users
     if (!isPro) {
       await setDoc(
         usageRef,
