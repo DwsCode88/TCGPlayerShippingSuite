@@ -11,7 +11,8 @@ import {
   getDocs,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "@/firebase";
+import { auth, db } from "@/firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
 import Link from "next/link";
 import { debounce } from "lodash";
 import SidebarLayout from "@/components/SidebarLayout";
@@ -35,6 +36,7 @@ type Order = {
 
 export default function BatchSummaryPage() {
   const { batchId } = useParams() as { batchId: string };
+  const [user] = useAuthState(auth);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [batchName, setBatchName] = useState("");
@@ -123,10 +125,14 @@ export default function BatchSummaryPage() {
       return;
     }
 
+    const token = await user?.getIdToken();
     const res = await fetch("/api/labels/merge", {
       method: "POST",
       body: JSON.stringify(labelUrls),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     if (!res.ok) {

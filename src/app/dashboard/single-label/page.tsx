@@ -71,18 +71,19 @@ export default function SingleLabelPage() {
     setLabelUrl(null);
 
     try {
-      const res = await fetch("/api/single-label", {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/labels/single", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify([
-          {
-            customAddress: parsed,
-            useEnvelope: true,
-            userId: user.uid,
-            selectedPackage,
-            nonMachinable,
-          },
-        ]),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          customAddress: parsed,
+          useEnvelope: true,
+          selectedPackage,
+          nonMachinable,
+        }),
       });
 
       const data = await res.json();

@@ -156,10 +156,14 @@ function UploadContent() {
       batchName,
     }));
 
-    const res = await fetch("/api/upload", {
+    const token = await user.getIdToken();
+    const res = await fetch("/api/labels/batch", {
       method: "POST",
       body: JSON.stringify(enriched),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     const result = await res.json();
