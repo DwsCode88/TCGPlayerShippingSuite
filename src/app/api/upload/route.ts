@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
             street1: order.customAddress.street1,
             city: order.customAddress.city,
             state: order.customAddress.state,
-            zip: order.customAddress.zip?.replace(/\\D/g, ""),
+            zip: order.customAddress.zip?.replace(/\D/g, ""),
             country: order.customAddress.country || "US",
           }
         : {
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
             street2: order.address2,
             city: order.city,
             state: order.state,
-            zip: order.zip?.replace(/\\D/g, ""),
+            zip: order.zip?.replace(/\D/g, ""),
             country: "US",
           };
 
