@@ -3,6 +3,7 @@ import { db } from "@/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import type { EasyPostRate, EasyPostShipment, EasyPostBoughtShipment } from "@/lib/easypost-types";
+import { getEasypostAuthHeader } from "@/lib/easypost";
 
 export async function POST(req: NextRequest) {
   const [order] = await req.json();
@@ -47,9 +48,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const authHeader = `Basic ${Buffer.from(userApiKey + ":").toString(
-    "base64"
-  )}`;
+  const authHeader = getEasypostAuthHeader(userApiKey);
 
   const to_address = {
     name: order.customAddress.name,
