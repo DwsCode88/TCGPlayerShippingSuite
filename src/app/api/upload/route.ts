@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/firebase";
 import { setDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
+import type { EasyPostRate, EasyPostShipment, EasyPostBoughtShipment } from "@/lib/easypost-types";
+import { getEasypostAuthHeader } from "@/lib/easypost";
+import { getUserUsage, incrementUsage } from "@/lib/usageCheck";
 
 export async function POST(req: NextRequest) {
   const orders = await req.json();
@@ -33,16 +36,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const authHeader = `Basic ${Buffer.from(userApiKey + ":").toString(
-    "base64"
-  )}`;
+  const authHeader = getEasypostAuthHeader(userApiKey);
 
-  const usageRef = doc(db, "usage", userId);
-  const usageSnap = await getDoc(usageRef);
-  const usage = usageSnap.exists() ? usageSnap.data() : { count: 0, month: "" };
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const usageCount = usage?.month === currentMonth ? usage.count : 0;
-  const isPro = userSettings?.isPro === true || userSettings?.plan === "pro";
+  const { isPro, usageCount, usageRef, currentMonth } = await getUserUsage(userId, userSettings);
   const newLabelCount = orders.length;
 
   if (!isPro && usageCount + newLabelCount > 10) {
@@ -97,7 +93,7 @@ export async function POST(req: NextRequest) {
             street1: order.customAddress.street1,
             city: order.customAddress.city,
             state: order.customAddress.state,
-            zip: order.customAddress.zip?.replace(/\\D/g, ""),
+            zip: order.customAddress.zip?.replace(/\D/g, ""),
             country: order.customAddress.country || "US",
           }
         : {
@@ -106,7 +102,7 @@ export async function POST(req: NextRequest) {
             street2: order.address2,
             city: order.city,
             state: order.state,
-            zip: order.zip?.replace(/\\D/g, ""),
+            zip: order.zip?.replace(/\D/g, ""),
             country: "US",
           };
 
@@ -138,22 +134,22 @@ export async function POST(req: NextRequest) {
         }),
       });
 
-      const shipment = await createRes.json();
+      const shipment = await createRes.json() as EasyPostShipment;
       if (shipment.error || !shipment.rates?.length) continue;
 
-      let rate;
+      let rate: EasyPostRate | undefined;
       if (isHighValue) {
         rate = shipment.rates.find(
-          (r: any) => r.carrier === "USPS" && r.service === "GroundAdvantage"
+          (r: EasyPostRate) => r.carrier === "USPS" && r.service === "GroundAdvantage"
         );
       }
       if (!rate) {
         rate = shipment.rates.reduce(
-          (lowest: any, current: any) =>
+          (lowest: EasyPostRate | undefined, current: EasyPostRate) =>
             parseFloat(current.rate) < parseFloat(lowest?.rate || "Infinity")
               ? current
               : lowest,
-          null
+          undefined
         );
       }
 
@@ -171,7 +167,7 @@ export async function POST(req: NextRequest) {
         }
       );
 
-      const bought = await buyRes.json();
+      const bought = await buyRes.json() as EasyPostBoughtShipment;
       if (!bought?.postage_label?.label_url) continue;
 
       const orderId = uuidv4();
@@ -245,19 +241,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!isPro) {
-    const newCount = usageCount + orders.length;
-    await setDoc(
-      usageRef,
-      {
-        month: currentMonth,
-        count: newCount,
-        updatedAt: Date.now(),
-      },
-      { merge: true }
-    );
-    console.log(
-      `✅ Updated usage for ${userId}: ${newCount} labels this month`
-    );
+    await incrementUsage(usageRef, currentMonth, usageCount, orders.length);
   }
 
   return NextResponse.json({ groundAdvantage, envelopes });

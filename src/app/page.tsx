@@ -12,7 +12,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (user) router.push("/dashboard");
-  }, [user]);
+  }, [user, router]);
 
   if (loading || user) return null;
 
