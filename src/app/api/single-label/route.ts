@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import type { EasyPostRate, EasyPostShipment, EasyPostBoughtShipment } from "@/lib/easypost-types";
 import { getEasypostAuthHeader } from "@/lib/easypost";
+import { getUserUsage, incrementUsage } from "@/lib/usageCheck";
 
 export async function POST(req: NextRequest) {
   const [order] = await req.json();
@@ -28,14 +29,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const usageRef = doc(db, "usage", order.userId);
-  const usageSnap = await getDoc(usageRef);
-  const usage = usageSnap.exists() ? usageSnap.data() : { count: 0, month: "" };
-
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const usageCount = usage?.month === currentMonth ? usage.count : 0;
-
-  const isPro = userSettings?.isPro === true || userSettings?.plan === "pro";
+  const { isPro, usageCount, usageRef, currentMonth } = await getUserUsage(order.userId, userSettings);
 
   if (!isPro && usageCount + 1 > 10) {
     return NextResponse.json(
@@ -185,15 +179,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!isPro) {
-      await setDoc(
-        usageRef,
-        {
-          month: currentMonth,
-          count: usageCount + 1,
-          updatedAt: Date.now(),
-        },
-        { merge: true }
-      );
+      await incrementUsage(usageRef, currentMonth, usageCount, 1);
     }
 
     return NextResponse.json({
