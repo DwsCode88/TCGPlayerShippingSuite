@@ -11,6 +11,7 @@ const config = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: ['**/__tests__/**/*.test.ts'],
+  transformIgnorePatterns: ['/node_modules/(?!(uuid)/)'],
 }
 
 module.exports = createJestConfig(config)
