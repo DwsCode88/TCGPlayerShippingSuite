@@ -15,6 +15,7 @@ import { db } from "@/firebase";
 import Link from "next/link";
 import { debounce } from "lodash";
 import SidebarLayout from "@/components/SidebarLayout";
+import { toast } from "react-hot-toast";
 
 type Order = {
   orderNumber: string;
@@ -119,7 +120,7 @@ export default function BatchSummaryPage() {
 
   const downloadByType = async (labelUrls: string[], filename: string) => {
     if (!labelUrls.length) {
-      alert("No labels found for this type.");
+      toast.error("No labels found for this type.");
       return;
     }
 
@@ -130,7 +131,7 @@ export default function BatchSummaryPage() {
     });
 
     if (!res.ok) {
-      alert("Failed to generate PDF");
+      toast.error("Failed to generate PDF");
       return;
     }
 
