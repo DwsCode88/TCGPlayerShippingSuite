@@ -8,38 +8,38 @@
 
 ## Duplicate / Dead Code
 
-- [ ] Delete `src/firebaseUtils.ts` (stale duplicate of `src/lib/userSettings.ts` with outdated type)
-- [ ] Delete or integrate `src/components/DashboardLayout.tsx` (unused — `SidebarLayout` is used everywhere)
-- [ ] Delete or integrate `src/components/RequireAuth.tsx` (exists but no page uses it)
-- [ ] Investigate and remove `src/components/UserHeader.tsx` if unused
-- [ ] Delete `src/app/api/labels/merge.ts` (leftover — `merge/route.ts` is the active file)
+- [x] Delete `src/firebaseUtils.ts` (stale duplicate of `src/lib/userSettings.ts` with outdated type)
+- [x] Delete or integrate `src/components/DashboardLayout.tsx` (unused — `SidebarLayout` is used everywhere)
+- [x] Delete or integrate `src/components/RequireAuth.tsx` (exists but no page uses it)
+- [x] Investigate and remove `src/components/UserHeader.tsx` if unused
+- [x] Delete `src/app/api/labels/merge.ts` (leftover — `merge/route.ts` is the active file)
 - [ ] Remove `papaparse` dependency or replace manual CSV parsing with it
 
 ## TypeScript Quality
 
-- [ ] Replace `useState<any[]>` for batches/orders in dashboard with proper typed interfaces
-- [ ] Type EasyPost API response shapes (rate objects, shipment objects) instead of `(r: any)`
+- [x] Replace `useState<any[]>` for batches/orders in dashboard with proper typed interfaces
+- [x] Type EasyPost API response shapes (rate objects, shipment objects) instead of `(r: any)`
 - [ ] Add proper types to admin pages (`AdminStats.tsx`, `AdminUsers.tsx`)
 
 ## Code Duplication
 
-- [ ] Extract shared EasyPost auth + shipment creation logic from `/api/upload` and `/api/single-label` into `src/lib/easypost.ts`
-- [ ] Extract free-tier usage check + update logic into `src/lib/usageCheck.ts`
+- [x] Extract shared EasyPost auth + shipment creation logic from `/api/upload` and `/api/single-label` into `src/lib/easypost.ts`
+- [x] Extract free-tier usage check + update logic into `src/lib/usageCheck.ts`
 
 ## Data Consistency
 
 - [ ] Standardize `createdAt` across all Firestore writes (pick one: `serverTimestamp()`, `Date.now()`, or ISO string — and remove redundant `createdAtMillis`/`createdAtDisplay` fields)
-- [ ] Fix ZIP regex in `api/upload/route.ts` (double-escaped `\\D` vs correct `\D` in single-label route)
+- [x] Fix ZIP regex in `api/upload/route.ts` (double-escaped `\\D` vs correct `\D` in single-label route)
 
 ## Auth / Navigation
 
 - [ ] Add `src/middleware.ts` to centralize auth guard instead of duplicating `useAuthState` + redirect in every page
-- [ ] Fix missing `router` in `useEffect` dependency array in `src/app/page.tsx`
+- [x] Fix missing `router` in `useEffect` dependency array in `src/app/page.tsx`
 
 ## Minor Code Quality
 
 - [ ] Replace hardcoded `"VaultTrove"` in `src/lib/generateOrderLabels.ts` with value from user settings
-- [ ] Replace `alert()` calls in batch page `downloadByType` with `toast` from `react-hot-toast`
+- [x] Replace `alert()` calls in batch page `downloadByType` with `toast` from `react-hot-toast`
 - [ ] Consolidate dashboard's double Firestore batch fetch (all batches + recent batches) into one query
 - [ ] Add request body schema validation (e.g., Zod) to all API routes
 - [ ] Audit `src/lib/generateLabelWithLogo.ts` — remove if unused, document if used
