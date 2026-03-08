@@ -15,11 +15,20 @@ import {
 import Link from "next/link";
 import SidebarLayout from "@/components/SidebarLayout";
 
+type Batch = {
+  id: string;
+  batchName?: string;
+  createdAt?: number;
+  createdAtMillis?: number;
+  archived?: boolean;
+  userId: string;
+};
+
 export default function DashboardPage() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
-  const [batches, setBatches] = useState<any[]>([]);
-  const [recentBatches, setRecentBatches] = useState<any[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [recentBatches, setRecentBatches] = useState<Batch[]>([]);
   const [labelCount, setLabelCount] = useState(0);
   const [postageTotal, setPostageTotal] = useState(0);
 
@@ -37,7 +46,7 @@ export default function DashboardPage() {
           const allBatchData = allBatchSnap.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
-          }));
+          })) as Batch[];
           setBatches(allBatchData);
 
           const recentBatchSnap = await getDocs(
@@ -51,7 +60,7 @@ export default function DashboardPage() {
           const recentBatchData = recentBatchSnap.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
-          }));
+          })) as Batch[];
           setRecentBatches(recentBatchData);
 
           const orderSnap = await getDocs(
