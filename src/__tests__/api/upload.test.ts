@@ -140,3 +140,111 @@ describe('POST /api/upload — free tier enforcement', () => {
     expect(res.status).toBe(200)
   })
 })
+
+describe('POST /api/upload — label generation logic', () => {
+  beforeEach(() => {
+    getDoc
+      .mockResolvedValueOnce(mockFreeUser)
+      .mockResolvedValueOnce(mockNoUsage)
+  })
+
+  it('selects Ground Advantage rate for high-value orders (useEnvelope === false)', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([ENVELOPE_RATE, GROUND_RATE]))
+      .mockResolvedValueOnce(makeBuyResponse())
+    const order = { ...BASE_ORDER, useEnvelope: false }
+    const res = await POST(makeRequest([order]))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.groundAdvantage).toHaveLength(1)
+    expect(body.envelopes).toHaveLength(0)
+    const buyCall = (global.fetch as jest.Mock).mock.calls[1]
+    const buyBody = JSON.parse(buyCall[1].body)
+    expect(buyBody.rate.service).toBe('GroundAdvantage')
+  })
+
+  it('falls back to cheapest rate when Ground Advantage is unavailable', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    getDoc.mockReset()
+    getDoc
+      .mockResolvedValueOnce(mockFreeUser)
+      .mockResolvedValueOnce(mockNoUsage)
+    const cheaperRate = { ...ENVELOPE_RATE, rate: '0.50' }
+    const expensiveRate = { ...ENVELOPE_RATE, id: 'rate2', rate: '1.00' }
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([expensiveRate, cheaperRate]))
+      .mockResolvedValueOnce(makeBuyResponse())
+    const order = { ...BASE_ORDER, useEnvelope: false }
+    const res = await POST(makeRequest([order]))
+    expect(res.status).toBe(200)
+    const buyCall = (global.fetch as jest.Mock).mock.calls[1]
+    const buyBody = JSON.parse(buyCall[1].body)
+    expect(buyBody.rate.rate).toBe('0.50')
+  })
+
+  it('uses customAddress when provided instead of order address fields', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([ENVELOPE_RATE]))
+      .mockResolvedValueOnce(makeBuyResponse())
+    const customAddress = {
+      name: 'Custom Name',
+      street1: '999 Custom Rd',
+      city: 'CustomCity',
+      state: 'CA',
+      zip: '90210',
+      country: 'US',
+    }
+    const order = { ...BASE_ORDER, customAddress }
+    const res = await POST(makeRequest([order]))
+    expect(res.status).toBe(200)
+    const createCall = (global.fetch as jest.Mock).mock.calls[0]
+    const createBody = JSON.parse(createCall[1].body)
+    expect(createBody.shipment.to_address.name).toBe('Custom Name')
+    expect(createBody.shipment.to_address.street1).toBe('999 Custom Rd')
+  })
+
+  it('uses selectedPackage dimensions when provided', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([ENVELOPE_RATE]))
+      .mockResolvedValueOnce(makeBuyResponse())
+    const selectedPackage = {
+      name: 'Small Box',
+      weight: '8',
+      predefined_package: '',
+      length: '6',
+      width: '4',
+      height: '2',
+    }
+    const order = { ...BASE_ORDER, selectedPackage }
+    const res = await POST(makeRequest([order]))
+    expect(res.status).toBe(200)
+    const createCall = (global.fetch as jest.Mock).mock.calls[0]
+    const createBody = JSON.parse(createCall[1].body)
+    expect(createBody.shipment.parcel.weight).toBe(8)
+    expect(createBody.shipment.parcel.length).toBe('6')
+  })
+
+  it('skips an order silently if EasyPost returns no rates', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce(makeErrorShipmentResponse())
+    const res = await POST(makeRequest([BASE_ORDER]))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.groundAdvantage).toHaveLength(0)
+    expect(body.envelopes).toHaveLength(0)
+  })
+
+  it('skips an order silently if label purchase returns no label_url', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([ENVELOPE_RATE]))
+      .mockResolvedValueOnce(makeFailedBuyResponse())
+    const res = await POST(makeRequest([BASE_ORDER]))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.envelopes).toHaveLength(0)
+  })
+})
