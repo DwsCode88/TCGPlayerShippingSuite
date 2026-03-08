@@ -8,7 +8,11 @@
       "Bash(npx jest:*)",
       "Bash(xargs grep:*)",
       "Bash(npx tsc:*)",
-      "Skill(claude-api)"
+      "Skill(claude-api)",
+      "Bash(npm rebuild:*)",
+      "Bash(ls:*)",
+      "Bash(python3:*)",
+      "Bash(npm show:*)"
     ]
   }
 }
