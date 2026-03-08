@@ -248,3 +248,95 @@ describe('POST /api/upload — label generation logic', () => {
     expect(body.envelopes).toHaveLength(0)
   })
 })
+
+describe('POST /api/upload — Firestore writes', () => {
+  beforeEach(() => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([ENVELOPE_RATE]))
+      .mockResolvedValueOnce(makeBuyResponse())
+  })
+
+  it('creates batch document when batchId is provided', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    getDoc
+      .mockResolvedValueOnce(mockFreeUser)
+      .mockResolvedValueOnce(mockNoUsage)
+    await POST(makeRequest([BASE_ORDER]))
+    const setDocCalls = (setDoc as jest.Mock).mock.calls
+    const batchWrite = setDocCalls.find((call) =>
+      JSON.stringify(call[1]).includes('batchName')
+    )
+    expect(batchWrite).toBeDefined()
+    expect(batchWrite[1].batchName).toBe('Test Batch')
+  })
+
+  it('saves order document with correct cost breakdown fields', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    getDoc
+      .mockResolvedValueOnce(mockFreeUser)
+      .mockResolvedValueOnce(mockNoUsage)
+    await POST(makeRequest([{ ...BASE_ORDER, usePennySleeve: true, useTopLoader: true }]))
+    const setDocCalls = (setDoc as jest.Mock).mock.calls
+    const orderWrite = setDocCalls.find((call) =>
+      JSON.stringify(call[1]).includes('trackingCode')
+    )
+    expect(orderWrite).toBeDefined()
+    expect(orderWrite[1].trackingCode).toBe('USPS1234567890')
+    expect(orderWrite[1].labelCost).toBe(0.63)
+    expect(typeof orderWrite[1].totalCost).toBe('number')
+  })
+})
+
+describe('POST /api/upload — post-processing', () => {
+  it('updates usage count for free users after success', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    getDoc
+      .mockResolvedValueOnce(mockFreeUser)
+      .mockResolvedValueOnce(mockUsageUnderLimit)
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([ENVELOPE_RATE]))
+      .mockResolvedValueOnce(makeBuyResponse())
+    await POST(makeRequest([BASE_ORDER]))
+    const setDocCalls = (setDoc as jest.Mock).mock.calls
+    const usageWrite = setDocCalls.find((call) =>
+      JSON.stringify(call[1]).includes('"count"')
+    )
+    expect(usageWrite).toBeDefined()
+    expect(usageWrite[1].count).toBe(6)
+  })
+
+  it('does NOT update usage count for Pro users', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    getDoc
+      .mockResolvedValueOnce(mockProUser)
+      .mockResolvedValueOnce(mockUsageAtLimit)
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([ENVELOPE_RATE]))
+      .mockResolvedValueOnce(makeBuyResponse())
+    await POST(makeRequest([BASE_ORDER]))
+    const setDocCalls = (setDoc as jest.Mock).mock.calls
+    const usageWrite = setDocCalls.find((call) =>
+      JSON.stringify(call[1]).includes('"count"') &&
+      JSON.stringify(call[1]).includes('"month"')
+    )
+    expect(usageWrite).toBeUndefined()
+  })
+
+  it('returns groundAdvantage and envelopes arrays separated correctly', async () => {
+    const { POST } = await import('@/app/api/upload/route')
+    getDoc
+      .mockResolvedValueOnce(mockProUser)
+      .mockResolvedValueOnce(mockNoUsage)
+    const envelopeOrder = { ...BASE_ORDER, orderNumber: 'ORDER-001', useEnvelope: true }
+    const groundOrder = { ...BASE_ORDER, orderNumber: 'ORDER-002', useEnvelope: false }
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeShipmentResponse([ENVELOPE_RATE]))
+      .mockResolvedValueOnce(makeBuyResponse())
+      .mockResolvedValueOnce(makeShipmentResponse([GROUND_RATE]))
+      .mockResolvedValueOnce(makeBuyResponse())
+    const res = await POST(makeRequest([envelopeOrder, groundOrder]))
+    const body = await res.json()
+    expect(body.envelopes).toHaveLength(1)
+    expect(body.groundAdvantage).toHaveLength(1)
+  })
+})
