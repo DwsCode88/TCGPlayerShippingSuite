@@ -145,11 +145,11 @@ export async function POST(req: NextRequest) {
       }
       if (!rate) {
         rate = shipment.rates.reduce(
-          (lowest: EasyPostRate | null, current: EasyPostRate) =>
+          (lowest: EasyPostRate | undefined, current: EasyPostRate) =>
             parseFloat(current.rate) < parseFloat(lowest?.rate || "Infinity")
               ? current
               : lowest,
-          null
+          undefined
         );
       }
 
