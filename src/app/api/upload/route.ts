@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/firebase";
 import { setDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
+import type { EasyPostRate, EasyPostShipment, EasyPostBoughtShipment } from "@/lib/easypost-types";
 
 export async function POST(req: NextRequest) {
   const orders = await req.json();
@@ -138,18 +139,18 @@ export async function POST(req: NextRequest) {
         }),
       });
 
-      const shipment = await createRes.json();
+      const shipment = await createRes.json() as EasyPostShipment;
       if (shipment.error || !shipment.rates?.length) continue;
 
-      let rate;
+      let rate: EasyPostRate | undefined;
       if (isHighValue) {
         rate = shipment.rates.find(
-          (r: any) => r.carrier === "USPS" && r.service === "GroundAdvantage"
+          (r: EasyPostRate) => r.carrier === "USPS" && r.service === "GroundAdvantage"
         );
       }
       if (!rate) {
         rate = shipment.rates.reduce(
-          (lowest: any, current: any) =>
+          (lowest: EasyPostRate | null, current: EasyPostRate) =>
             parseFloat(current.rate) < parseFloat(lowest?.rate || "Infinity")
               ? current
               : lowest,
@@ -171,7 +172,7 @@ export async function POST(req: NextRequest) {
         }
       );
 
-      const bought = await buyRes.json();
+      const bought = await buyRes.json() as EasyPostBoughtShipment;
       if (!bought?.postage_label?.label_url) continue;
 
       const orderId = uuidv4();

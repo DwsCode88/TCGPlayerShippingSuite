@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
+import type { EasyPostRate, EasyPostShipment, EasyPostBoughtShipment } from "@/lib/easypost-types";
 
 export async function POST(req: NextRequest) {
   const [order] = await req.json();
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    const shipment = await createRes.json();
+    const shipment = await createRes.json() as EasyPostShipment;
 
     if (shipment.error || !shipment.rates?.length) {
       return NextResponse.json(
@@ -113,11 +114,11 @@ export async function POST(req: NextRequest) {
     // ✅ Filter for USPS First or GroundAdvantage
     const validServices = ["First", "GroundAdvantage"];
     const filteredRates = shipment.rates.filter(
-      (r: any) => r.carrier === "USPS" && validServices.includes(r.service)
+      (r: EasyPostRate) => r.carrier === "USPS" && validServices.includes(r.service)
     );
 
     const rate = filteredRates.reduce(
-      (lowest: any, current: any) =>
+      (lowest: EasyPostRate | null, current: EasyPostRate) =>
         parseFloat(current.rate) < parseFloat(lowest?.rate || "Infinity")
           ? current
           : lowest,
@@ -143,7 +144,7 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    const bought = await buyRes.json();
+    const bought = await buyRes.json() as EasyPostBoughtShipment;
     if (!bought?.postage_label?.label_url) {
       return NextResponse.json(
         { error: "Label purchase failed" },
