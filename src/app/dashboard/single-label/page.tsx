@@ -6,6 +6,27 @@ import { auth } from "@/firebase";
 import { fetchUserSettings } from "@/lib/userSettings";
 import SidebarLayout from "@/components/SidebarLayout";
 
+const inputStyle: React.CSSProperties = {
+  background: "#fff",
+  border: "1.5px solid var(--sidebar)",
+  borderRadius: "6px",
+  padding: "6px 10px",
+  fontSize: "13px",
+  color: "#1a2332",
+  width: "100%",
+};
+
+const labelStyle: React.CSSProperties = {
+  color: "var(--muted-foreground)",
+  fontSize: "12px",
+  fontWeight: 600,
+  marginBottom: "4px",
+  display: "block",
+};
+
+const focusClass =
+  "focus:outline-none focus:ring-2 focus:ring-[var(--active-color)] focus:ring-offset-0";
+
 export default function SingleLabelPage() {
   const [user] = useAuthState(auth);
 
@@ -24,6 +45,8 @@ export default function SingleLabelPage() {
   const [packages, setPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [nonMachinable, setNonMachinable] = useState(false);
+  const [weightLb, setWeightLb] = useState(0);
+  const [weightOz, setWeightOz] = useState(0);
 
   useEffect(() => {
     const loadUserSettings = async () => {
@@ -60,9 +83,11 @@ export default function SingleLabelPage() {
     });
   };
 
+  const isEnvelope = !selectedPackage;
+
   const generateLabel = async () => {
     if (!user) {
-      setResponse("❌ You must be logged in to generate labels.");
+      setResponse("You must be logged in to generate labels.");
       return;
     }
 
@@ -72,6 +97,18 @@ export default function SingleLabelPage() {
 
     try {
       const token = await user.getIdToken();
+
+      // Build the package payload: if a custom package is selected and weight inputs are provided, merge weight
+      const packagePayload = selectedPackage
+        ? {
+            ...selectedPackage,
+            weight:
+              weightLb * 16 + weightOz > 0
+                ? weightLb * 16 + weightOz
+                : selectedPackage.weight,
+          }
+        : undefined;
+
       const res = await fetch("/api/labels/single", {
         method: "POST",
         headers: {
@@ -81,7 +118,7 @@ export default function SingleLabelPage() {
         body: JSON.stringify({
           customAddress: parsed,
           useEnvelope: true,
-          selectedPackage,
+          selectedPackage: packagePayload || undefined,
           nonMachinable,
         }),
       });
@@ -89,10 +126,10 @@ export default function SingleLabelPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Label generation failed");
 
-      setResponse("✅ Label generated successfully.");
+      setResponse("Label generated successfully.");
       setLabelUrl(data.labelUrl);
     } catch (err: any) {
-      setResponse("❌ " + err.message);
+      setResponse(err.message);
     } finally {
       setLoading(false);
     }
@@ -100,100 +137,244 @@ export default function SingleLabelPage() {
 
   return (
     <SidebarLayout>
-      <div className="max-w-xl mx-auto mt-10 px-4">
-        <h1 className="text-2xl font-bold mb-4 text-white">
-          Single Label Generator
-        </h1>
+      <div className="max-w-lg mx-auto py-8 px-4">
+        {/* Address paste area */}
+        <div className="mb-5">
+          <label style={labelStyle}>Paste Address</label>
+          <textarea
+            rows={4}
+            className={focusClass}
+            style={{ ...inputStyle, resize: "vertical" }}
+            placeholder={`Paste address here\nExample:\nMichael Mahacek\n1446 ELKGROVE CIR APT 1\nVENICE, CA 90291-3103\nUS`}
+            value={rawInput}
+            onChange={(e) => setRawInput(e.target.value)}
+          />
+          <button
+            onClick={parseAddress}
+            className={`mt-2 px-4 py-1.5 rounded text-sm font-medium ${focusClass}`}
+            style={{
+              background: "var(--sidebar)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            Parse Address
+          </button>
+        </div>
 
-        <textarea
-          rows={4}
-          className="w-full p-2 border border-gray-700 rounded bg-gray-800 text-white"
-          placeholder={`Paste address here\nExample:\nMichael Mahacek\n1446 ELKGROVE CIR APT 1\nVENICE, CA 90291-3103\nUS`}
-          value={rawInput}
-          onChange={(e) => setRawInput(e.target.value)}
-        />
-
-        <button
-          onClick={parseAddress}
-          className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
-        >
-          Parse Address
-        </button>
-
-        <div className="mt-6 space-y-2 text-white">
+        {/* Parsed address fields */}
+        <div className="grid grid-cols-1 gap-3 mb-5">
           <div>
-            <strong>Name:</strong> {parsed.name}
+            <label style={labelStyle}>Name</label>
+            <input
+              type="text"
+              className={focusClass}
+              style={inputStyle}
+              value={parsed.name}
+              onChange={(e) => setParsed({ ...parsed, name: e.target.value })}
+            />
           </div>
           <div>
-            <strong>Street:</strong> {parsed.street1}
+            <label style={labelStyle}>Street</label>
+            <input
+              type="text"
+              className={focusClass}
+              style={inputStyle}
+              value={parsed.street1}
+              onChange={(e) =>
+                setParsed({ ...parsed, street1: e.target.value })
+              }
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label style={labelStyle}>City</label>
+              <input
+                type="text"
+                className={focusClass}
+                style={inputStyle}
+                value={parsed.city}
+                onChange={(e) => setParsed({ ...parsed, city: e.target.value })}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>State</label>
+              <input
+                type="text"
+                className={focusClass}
+                style={inputStyle}
+                value={parsed.state}
+                onChange={(e) =>
+                  setParsed({ ...parsed, state: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>ZIP</label>
+              <input
+                type="text"
+                className={focusClass}
+                style={inputStyle}
+                value={parsed.zip}
+                onChange={(e) => setParsed({ ...parsed, zip: e.target.value })}
+              />
+            </div>
           </div>
           <div>
-            <strong>City:</strong> {parsed.city}
-          </div>
-          <div>
-            <strong>State:</strong> {parsed.state}
-          </div>
-          <div>
-            <strong>ZIP:</strong> {parsed.zip}
-          </div>
-          <div>
-            <strong>Country:</strong> {parsed.country}
+            <label style={labelStyle}>Country</label>
+            <input
+              type="text"
+              className={focusClass}
+              style={inputStyle}
+              value={parsed.country}
+              onChange={(e) =>
+                setParsed({ ...parsed, country: e.target.value })
+              }
+            />
           </div>
         </div>
 
-        <div className="mt-6 text-white">
-          <label className="block mb-2">📦 Package Preset</label>
+        {/* Package selector */}
+        <div className="mb-5">
+          <label style={labelStyle}>Package Type</label>
           <select
+            className={focusClass}
+            style={inputStyle}
             onChange={(e) => {
               const selected = packages.find((p) => p.name === e.target.value);
               setSelectedPackage(selected || null);
+              if (!selected) {
+                setWeightLb(0);
+                setWeightOz(0);
+              }
             }}
-            className="w-full p-2 bg-gray-800 border border-gray-700 rounded text-white"
+            value={selectedPackage?.name || ""}
           >
-            <option value="">-- Default (Letter) --</option>
+            <option value="">Envelope</option>
             {packages.map((pkg) => (
               <option key={pkg.name} value={pkg.name}>
                 {pkg.name}
               </option>
             ))}
           </select>
+        </div>
 
-          <label className="mt-4 block">
+        {/* Weight inputs (shown when non-envelope package selected) */}
+        {!isEnvelope && (
+          <div className="mb-5">
+            <label style={labelStyle}>Weight</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                className={`w-20 ${focusClass}`}
+                style={{
+                  ...inputStyle,
+                  width: "70px",
+                  border: "1.5px solid var(--active-color)",
+                }}
+                value={weightLb}
+                onChange={(e) => setWeightLb(Number(e.target.value))}
+              />
+              <span
+                style={{ fontSize: "13px", color: "var(--muted-foreground)" }}
+              >
+                lb
+              </span>
+              <span style={{ color: "var(--muted-foreground)" }}>/</span>
+              <input
+                type="number"
+                min={0}
+                max={15}
+                className={`w-20 ${focusClass}`}
+                style={{
+                  ...inputStyle,
+                  width: "70px",
+                  border: "1.5px solid var(--active-color)",
+                }}
+                value={weightOz}
+                onChange={(e) => setWeightOz(Number(e.target.value))}
+              />
+              <span
+                style={{ fontSize: "13px", color: "var(--muted-foreground)" }}
+              >
+                oz
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Non-machinable checkbox */}
+        <div className="mb-6">
+          <label
+            className="flex items-center gap-2 cursor-pointer"
+            style={{ fontSize: "13px", color: "var(--muted-foreground)" }}
+          >
             <input
               type="checkbox"
-              className="mr-2"
               checked={nonMachinable}
               onChange={() => setNonMachinable(!nonMachinable)}
+              className="accent-[var(--active-color)]"
             />
-            Non-Machinable
+            <span style={{ fontWeight: 600 }}>Non-Machinable</span>
           </label>
         </div>
 
+        {/* Generate button */}
         <button
           onClick={generateLabel}
           disabled={loading}
-          className="mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+          className={`w-full py-2.5 rounded font-semibold text-sm transition-opacity ${focusClass}`}
+          style={{
+            background: "var(--primary-color)",
+            color: "var(--primary-foreground, #fff)",
+            border: "none",
+            borderRadius: "6px",
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.7 : 1,
+          }}
         >
           {loading ? "Generating..." : "Generate Label"}
         </button>
 
-        {response && <p className="mt-4 text-white">{response}</p>}
+        {/* Response */}
+        {response && (
+          <p
+            className="mt-4 text-sm font-medium"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            {response}
+          </p>
+        )}
 
+        {/* Label actions */}
         {labelUrl && (
-          <div className="mt-4 flex gap-4">
+          <div className="mt-4 flex gap-3">
             <a
               href={labelUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded"
+              className="px-4 py-2 rounded text-sm font-medium transition-opacity hover:opacity-90"
+              style={{
+                background: "var(--active-color)",
+                color: "#fff",
+                borderRadius: "6px",
+              }}
             >
-              📄 View Label PDF
+              View Label PDF
             </a>
             <a
               href="/dashboard/batch/single-labels"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded"
+              className="px-4 py-2 rounded text-sm font-medium transition-opacity hover:opacity-90"
+              style={{
+                background: "var(--primary-color)",
+                color: "var(--primary-foreground, #fff)",
+                borderRadius: "6px",
+              }}
             >
-              📂 Go to Single Labels Batch
+              Go to Single Labels Batch
             </a>
           </div>
         )}
