@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:e2e": "bash e2e/run_tests.sh"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

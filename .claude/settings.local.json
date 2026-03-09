@@ -19,7 +19,15 @@
       "Bash(npx shadcn@latest:*)",
       "Bash(start:*)",
       "Bash(npm run:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(wc:*)",
+      "Bash(chmod +x:*)",
+      "Bash(pip install:*)",
+      "Bash(where python:*)",
+      "Bash(ls /c/Python*/python.exe)",
+      "Read(//c/Users/RC/AppData/Local/Programs/Python/**)",
+      "Read(//c/ProgramData/**)",
+      "Bash(/c/Users/RC/AppData/Local/Programs/Python/Python314/python.exe:*)"
     ]
   }
 }

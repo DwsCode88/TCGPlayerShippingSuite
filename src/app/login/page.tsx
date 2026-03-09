@@ -9,15 +9,25 @@ import {
 import { auth, db } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { sendEmailVerification, signOut, signInWithEmailAndPassword as firebaseSignIn, createUserWithEmailAndPassword as firebaseCreateUser } from "firebase/auth";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 
 const IS_EMULATOR = process.env.NEXT_PUBLIC_USE_EMULATORS === "true";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,10 +44,17 @@ export default function LoginPage() {
 
   const [waitingForVerification, setWaitingForVerification] = useState(false);
 
+  // Set __session cookie so middleware allows access to protected routes
+  const setSessionCookie = async (firebaseUser: typeof user) => {
+    if (!firebaseUser) return;
+    const token = await firebaseUser.getIdToken();
+    document.cookie = `__session=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  };
+
   // Handle redirect after verification (skip verification check in emulator mode)
   useEffect(() => {
     if (user && (IS_EMULATOR || user.emailVerified)) {
-      router.push("/dashboard");
+      setSessionCookie(user).then(() => router.push(redirectTo));
     } else if (user && !user.emailVerified) {
       setWaitingForVerification(true);
     }
@@ -51,7 +68,8 @@ export default function LoginPage() {
         await user.reload();
         if (user.emailVerified) {
           setWaitingForVerification(false);
-          router.push("/dashboard");
+          await setSessionCookie(user);
+          router.push(redirectTo);
         }
       }, 5000);
     }
@@ -104,9 +122,10 @@ export default function LoginPage() {
 
   const handleDevSignIn = async () => {
     try {
-      await firebaseSignIn(auth, "dev@localhost.test", "devdev123");
+      const cred1 = await firebaseSignIn(auth, "dev@localhost.test", "devdev123");
+      await setSessionCookie(cred1.user);
       toast.success("Signed in as dev user");
-      router.push("/dashboard");
+      router.push(redirectTo);
     } catch {
       // Account may not exist yet — create it
       try {
@@ -120,8 +139,9 @@ export default function LoginPage() {
           plan: "pro",
           createdAt: Date.now(),
         }, { merge: true });
+        await setSessionCookie(cred.user);
         toast.success("Created & signed in as dev user");
-        router.push("/dashboard");
+        router.push(redirectTo);
       } catch (e: unknown) {
         console.error(e);
         toast.error("Dev sign-in failed");
@@ -147,8 +167,9 @@ export default function LoginPage() {
           { merge: true }
         );
 
+        await setSessionCookie(res.user);
         toast.success("✅ Signed in with Google");
-        router.push("/dashboard");
+        router.push(redirectTo);
       }
     } catch (err) {
       console.error(err);

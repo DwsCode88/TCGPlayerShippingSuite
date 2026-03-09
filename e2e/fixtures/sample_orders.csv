@@ -1,0 +1,4 @@
+"Order Number","FirstName","LastName","Address1","Address2","City","State","PostalCode","Product Weight","Item Count","Value Of Products"
+"ORD-001","John","Doe","123 Main St","","Springfield","IL","62704","0.5","3","12.50"
+"ORD-002","Jane","Smith","456 Oak Ave","Apt 2B","Portland","OR","97201","0.3","2","8.99"
+"ORD-003","Bob","Wilson","789 Pine Rd","","Austin","TX","78701","1.2","12","45.00"
