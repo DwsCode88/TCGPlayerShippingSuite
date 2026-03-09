@@ -52,7 +52,6 @@ export default function SingleLabelPage() {
     const loadUserSettings = async () => {
       if (!user) return;
       const settings = await fetchUserSettings(user.uid);
-      console.log("📦 Loaded user settings:", settings); // helpful debug
       setPackages(settings?.packageTypes || []);
     };
     loadUserSettings();

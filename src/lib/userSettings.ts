@@ -12,6 +12,7 @@ export type UserSettings = {
   defaultNonMachinable?: boolean;
   valueThreshold?: number;
   cardCountThreshold?: number;
+  nonMachinableCardCountThreshold?: number;
   fromAddress?: {
     name: string;
     street1: string;

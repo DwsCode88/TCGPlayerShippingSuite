@@ -160,7 +160,7 @@ export default function LoginPage() {
           >
             Verify Your Email
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
             We&apos;ve sent a verification link to{" "}
             <strong>{user.email}</strong>.
           </p>
@@ -174,7 +174,7 @@ export default function LoginPage() {
           >
             Resend Verification Email
           </button>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
             This page will auto-refresh once verified.
           </p>
         </div>
@@ -196,13 +196,13 @@ export default function LoginPage() {
           >
             TCG Shipping
           </h1>
-          <p className="text-sm text-gray-500 font-medium">Shipping Suite</p>
+          <p className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>Shipping Suite</p>
         </div>
 
         {/* Google Sign In */}
         <button
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-md font-semibold text-[13px] transition-colors hover:bg-gray-50"
+          className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-md font-semibold text-[13px] transition-colors"
           style={{
             border: "1.5px solid var(--sidebar)",
             color: "var(--sidebar)",
@@ -232,9 +232,9 @@ export default function LoginPage() {
 
         {/* Divider */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400 font-medium">or</span>
-          <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+          <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>or</span>
+          <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
         </div>
 
         {/* Sign Up Fields (conditionally shown) */}
@@ -317,7 +317,7 @@ export default function LoginPage() {
         )}
 
         {/* Toggle Sign Up / Sign In */}
-        <p className="text-center text-xs text-gray-500">
+        <p className="text-center text-xs" style={{ color: "var(--muted-foreground)" }}>
           {isSignUp ? (
             <>
               Already have an account?{" "}

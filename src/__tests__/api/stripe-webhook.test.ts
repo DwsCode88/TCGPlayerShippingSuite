@@ -3,11 +3,15 @@
  */
 import { makeCheckoutEvent, makeUnhandledEvent } from '../mocks/stripe'
 
+// Use var to avoid TDZ issues with jest.mock hoisting
+// eslint-disable-next-line no-var
+var sharedStripeWebhooks = {
+  constructEvent: jest.fn(),
+}
+
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
-    webhooks: {
-      constructEvent: jest.fn(),
-    },
+    webhooks: sharedStripeWebhooks,
   }))
 })
 
@@ -27,10 +31,9 @@ jest.mock('firebase-admin/firestore', () => ({
 import { app } from '@/app/api/[[...route]]/route'
 import Stripe from 'stripe'
 
-// Stripe is instantiated at module-level in route.ts when this file is imported.
-// Capture the mock instance's webhooks reference here — before any clearAllMocks().
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const stripeWebhooks = (Stripe as any).mock.results[0]?.value?.webhooks as {
+// Stripe is now lazily instantiated per-request in route.ts.
+// All mock instances share the same webhooks object defined above.
+const stripeWebhooks = sharedStripeWebhooks as {
   constructEvent: jest.Mock
 }
 

@@ -217,8 +217,7 @@ export default function BatchHistoryPage() {
                       style={{ borderColor: "var(--border)" }}
                     >
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
+                        <AlertDialogTrigger
                             className="text-[12px] px-3 py-1.5 rounded border font-medium transition-colors"
                             style={{
                               borderColor: "var(--border)",
@@ -226,7 +225,6 @@ export default function BatchHistoryPage() {
                             }}
                           >
                             Archive
-                          </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>

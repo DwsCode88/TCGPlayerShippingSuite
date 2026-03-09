@@ -68,7 +68,7 @@ export default function SidebarLayout({
                 href={href}
                 className="flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] font-medium text-white transition-colors"
                 style={{
-                  borderLeft: active ? "3px solid #0094C6" : "3px solid transparent",
+                  borderLeft: active ? "3px solid var(--active-color)" : "3px solid transparent",
                   background: active ? "rgba(0,148,198,0.15)" : "transparent",
                 }}
               >
@@ -85,7 +85,7 @@ export default function SidebarLayout({
                 href="/admin"
                 className="flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] font-medium text-white"
                 style={{
-                  borderLeft: pathname.startsWith("/admin") ? "3px solid #0094C6" : "3px solid transparent",
+                  borderLeft: pathname.startsWith("/admin") ? "3px solid var(--active-color)" : "3px solid transparent",
                   background: pathname.startsWith("/admin") ? "rgba(0,148,198,0.15)" : "transparent",
                 }}
               >
@@ -93,7 +93,7 @@ export default function SidebarLayout({
                 Admin
                 <span
                   className="ml-auto text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded"
-                  style={{ background: "rgba(0,148,198,0.3)", color: "#0094C6" }}
+                  style={{ background: "rgba(0,148,198,0.3)", color: "var(--active-color)" }}
                 >
                   Admin
                 </span>
