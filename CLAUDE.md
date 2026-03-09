@@ -65,6 +65,7 @@ Auth middleware verifies `Authorization: Bearer <idToken>` on every request (exc
 - `zod` — request body schemas
 - `stripe` — webhook signature verification
 - `pdf-lib` — server-side PDF merging
+- `papaparse` — CSV parsing for batch order uploads
 - `react-hot-toast`, `lucide-react` — UI utilities
 
 ### Auth Pattern
@@ -86,4 +87,16 @@ Firebase config is hardcoded in `src/firebase.ts` (public project config, not a 
 
 ## Test Suite
 
-Tests live in `src/__tests__/api/`. Mocks in `src/__tests__/mocks/` provide reusable Firebase, EasyPost, and Stripe response builders. All tests mock `@/firebase` and global `fetch` — no real network calls.
+Tests live in `src/__tests__/api/`. Mocks in `src/__tests__/mocks/` provide reusable Firebase, EasyPost, and Stripe response builders. All tests mock `@/lib/admin` and global `fetch` — no real network calls.
+
+### Key test patterns
+
+- Use `jest.requireMock('@/lib/admin')` inside `beforeEach` to configure Firestore mock chains (avoids TDZ issues with `jest.mock` hoisting).
+- `jest.mock()` factories must not reference `const` variables — inline values directly or use `jest.fn()`.
+- Zod `.optional()` rejects `null`; omit optional fields from test fixtures rather than setting them to `null`.
+- Stripe mock instance must be captured at module level (before `clearAllMocks()` runs) because `jest.clearAllMocks()` wipes `Stripe.mock.results`.
+- Admin SDK snapshot shape: `{ exists: true, data: () => ({...}) }` — `exists` is a boolean, not a function.
+
+## shadcn MCP
+
+shadcn component server is configured in `.mcp.json` (added by `npx shadcn@latest mcp init --client claude`). Claude Code picks it up automatically.

@@ -12,7 +12,12 @@
       "Bash(npm rebuild:*)",
       "Bash(ls:*)",
       "Bash(python3:*)",
-      "Bash(npm show:*)"
+      "Bash(npm show:*)",
+      "Bash(/c/Users/RC/github/TCGPlayerShippingSuite/package.json:*)",
+      "Bash(/c/Users/RC/github/TCGPlayerShippingSuite/CLAUDE.md:*)",
+      "Bash(grep:*)",
+      "Bash(npx shadcn@latest:*)",
+      "Bash(start:*)"
     ]
   }
 }
