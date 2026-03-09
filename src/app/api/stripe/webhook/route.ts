@@ -4,14 +4,17 @@ import Stripe from "stripe";
 import { db } from "@/firebase";
 import { collection, query, where, getDocs, setDoc } from "firebase/firestore";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16" as any, // Safe override
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
+  return new Stripe(key, { apiVersion: "2023-10-16" as any });
+}
 
 export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature")!;
   const rawBody = await req.text();
 
+  const stripe = getStripe();
   let event;
   try {
     event = stripe.webhooks.constructEvent(

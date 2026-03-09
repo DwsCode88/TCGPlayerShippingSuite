@@ -4,9 +4,11 @@ import Stripe from "stripe";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16" as any, // Safe override
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
+  return new Stripe(key, { apiVersion: "2023-10-16" as any });
+}
 
 export async function POST(req: NextRequest) {
   const form = await req.formData();
@@ -17,6 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing user info" }, { status: 400 });
   }
 
+  const stripe = getStripe();
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     mode: "subscription",

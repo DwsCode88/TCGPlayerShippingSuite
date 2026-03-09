@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
+const IS_EMULATOR = process.env.NEXT_PUBLIC_USE_EMULATORS === "true";
+
 export default function LoginPage() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
@@ -31,10 +33,9 @@ export default function LoginPage() {
 
   const [waitingForVerification, setWaitingForVerification] = useState(false);
 
-  // Handle redirect after verification
+  // Handle redirect after verification (skip verification check in emulator mode)
   useEffect(() => {
-    if (user?.emailVerified) {
-      toast.success("✅ Email verified!");
+    if (user && (IS_EMULATOR || user.emailVerified)) {
       router.push("/dashboard");
     } else if (user && !user.emailVerified) {
       setWaitingForVerification(true);
