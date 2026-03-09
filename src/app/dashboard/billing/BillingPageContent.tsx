@@ -76,7 +76,7 @@ export default function BillingPageContent() {
     <SidebarLayout>
       <div className="max-w-lg">
         {showSuccess && (
-          <div className="bg-green-600 text-white p-4 rounded shadow mb-6">
+          <div className="bg-success text-white p-4 rounded shadow mb-6">
             Thank you! Your Pro subscription is now active.
           </div>
         )}
