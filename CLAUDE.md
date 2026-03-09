@@ -5,89 +5,98 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev      # Start dev server with Turbopack at localhost:3000
-npm run build    # Production build
-npm run lint     # ESLint
+npm run dev       # start dev server (Turbopack) at localhost:3000
+npm run build     # production build
+npm run lint      # ESLint
+npm test          # run Jest regression suite
+npm test -- upload          # run single test file by name fragment
+npm test -- --watch         # watch mode
 ```
 
-There are no automated tests in this project.
+**For local dev, start Firebase emulators first:**
+```bash
+firebase emulators:start --only auth,firestore
+```
 
-## Architecture Overview
+## Architecture
 
-**TCG Shipping Suite** is a Next.js 15 (App Router) SaaS tool for TCGplayer sellers to generate USPS shipping labels in bulk via the EasyPost API.
+**Next.js 16 App Router** with TypeScript and Tailwind CSS v4. API routes use Hono with Firebase Admin SDK. Frontend uses Firebase client SDK.
 
-### Auth & Data
+### API Layer
 
-- Firebase Auth (Google/email) via `react-firebase-hooks`
-- Firestore collections:
-  - `users/{uid}` — user settings (EasyPost API key, from address, packaging costs, plan status)
-  - `batches/{batchId}` — batch metadata (name, timestamps, archived flag, notes)
-  - `orders/{orderId}` — individual orders with tracking codes, label URLs, cost breakdown
-  - `usage/{uid}` — monthly label count for free-tier enforcement (10 labels/month)
-- Firebase client is initialized in `src/firebase.ts` and exported as `{ auth, db, storage }`
-- `src/firebaseUtils.ts` is an **older/duplicate** file — prefer `src/lib/userSettings.ts` for user settings operations
+All API routes are consolidated in `src/app/api/[[...route]]/route.ts` via a **Hono** router.
 
-### API Routes (`src/app/api/`)
-
-All routes are Next.js Route Handlers (not Pages API). Key routes:
+Auth middleware verifies `Authorization: Bearer <idToken>` on every request (except `/api/stripe/webhook`). Frontend pages call `user.getIdToken()` and pass the token in the header.
 
 | Route | Purpose |
 |---|---|
-| `POST /api/upload` | Batch label generation — creates EasyPost shipments for all orders, saves to Firestore |
-| `POST /api/single-label` | Single label generation — same flow for one order |
-| `POST /api/labels/merge` | Fetches PDFs from EasyPost URLs and merges them via `pdf-lib` |
-| `POST /api/stripe/webhook` | Handles `checkout.session.completed` → sets `isPro: true` on user doc |
-| `POST /api/stripe/create-customer` | Creates Stripe customer |
-| `GET /api/export-batches` | Exports batch data |
+| `POST /api/labels/batch` | Batch label generation (was `/api/upload`) |
+| `POST /api/labels/single` | Single label generation (was `/api/single-label`) |
+| `POST /api/labels/merge` | Merges PDF label URLs via `pdf-lib` |
+| `POST /api/stripe/webhook` | Handles Stripe checkout + subscription events |
 
-**EasyPost integration pattern** (in both upload and single-label routes):
-1. Fetch user settings + API key from Firestore
-2. Check free-tier usage limit
-3. POST to `https://api.easypost.com/v2/shipments` to get rates
-4. POST to `/buy` with the selected rate
-5. Save order to Firestore with tracking code and label URL
+### Firebase
 
-**Pro plan check**: `isPro === true || plan === "pro"` on the user document. Free users get 10 labels/month tracked in `usage/{uid}`.
+**Server side** (`src/lib/admin.ts`): Firebase Admin SDK. Reads `FIREBASE_SERVICE_ACCOUNT_JSON` env var (base64 JSON). In local dev, set `FIRESTORE_EMULATOR_HOST=localhost:8080` and `FIREBASE_AUTH_EMULATOR_HOST=localhost:9099` instead.
+
+**Client side** (`src/firebase.ts`): Firebase client SDK for Auth and Firestore queries in React pages.
+
+### Firestore Collections
+
+| Collection | Key fields |
+|---|---|
+| `users/{uid}` | `easypostApiKey`, `fromAddress`, `isPro`, `plan`, `stripeCustomerId`, packaging costs |
+| `usage/{uid}` | `count`, `month` (YYYY-MM) — free tier label tracking |
+| `batches/{batchId}` | `userId`, `createdAt`, `createdAtMillis`, `archived` |
+| `orders/{orderId}` | `userId`, `batchId`, `trackingCode`, `labelUrl`, cost breakdown |
 
 ### Shipping Logic
 
-- Orders with `valueOfProducts >= valueThreshold` → USPS Ground Advantage (box/parcel)
-- Orders below threshold → USPS First Class Letter (envelope/PWE)
-- Orders with `itemCount >= cardCountThreshold` → marked `nonMachinable`
-- Both thresholds come from user settings (defaults: value=$25, card count=8)
-- Label separation (envelope vs ground) is determined by `useEnvelope` boolean on each order
-
-### Frontend Pages
-
-- `/` — Landing page, redirects authenticated users to `/dashboard`
-- `/upload` — Main CSV upload flow: parse TCGplayer export CSV → preview order table → generate labels
-- `/dashboard` — Stats overview (batch count, label count, postage total) + recent batches
-- `/dashboard/batch/[batchId]` — Batch detail with cost breakdown, CSV export, PDF label download
-- `/dashboard/history` — Full batch list
-- `/dashboard/settings` — User settings form (`src/components/SettingsForm.tsx`)
-- `/dashboard/billing` — Stripe billing
-- `/dashboard/single-label` — One-off label creation UI
-- `/admin` — Admin-only stats and user management
+- `useEnvelope: false` → prefer USPS Ground Advantage; fall back to cheapest rate
+- `useEnvelope: true` → cheapest USPS First Class rate
+- Free tier: 10 labels/month tracked in `usage/{uid}`. Pro users (`isPro === true` or `plan === "pro"`) bypass.
+- EasyPost auth: `Basic base64(apiKey + ":")` header.
 
 ### Key Libraries
 
-- `src/lib/generateOrderLabels.ts` — Generates 2"×1.25" packing slip PDFs with order numbers (client-side, uses `document`)
-- `src/lib/generateLabelWithLogo.ts` — Label generation with logo overlay
-- `src/lib/generateTCGCSV.ts` — Generates TCGplayer tracking upload CSV (Tracking #, Order #, Carrier)
-- `src/lib/saveOrder.ts` — Firestore order persistence helpers
+- `firebase-admin` — server-side Firestore/Auth in API routes
+- `firebase` (client SDK) — Auth, Firestore, Storage in React pages
+- `hono` + `@hono/zod-validator` — API router with Zod request validation
+- `zod` — request body schemas
+- `stripe` — webhook signature verification
+- `pdf-lib` — server-side PDF merging
+- `papaparse` — CSV parsing for batch order uploads
+- `react-hot-toast`, `lucide-react` — UI utilities
 
-### Layout
+### Auth Pattern
 
-All authenticated pages wrap content in `<SidebarLayout>` (`src/components/SidebarLayout.tsx`), which provides the sidebar nav. Auth guard is done manually in each page via `useAuthState` + `router.push("/login")` — there is no centralized middleware.
+Client pages use `useAuthState` from `react-firebase-hooks/auth` and redirect to `/login` if unauthenticated. `SidebarLayout` wraps all authenticated dashboard pages. `src/middleware.ts` provides a best-effort cookie-based redirect for unauthenticated users.
 
 ### Environment Variables
 
-Required (not committed):
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
+Required in `.env.local`:
+```
+FIRESTORE_EMULATOR_HOST=localhost:8080        # local dev only
+FIREBASE_AUTH_EMULATOR_HOST=localhost:9099   # local dev only
+FIREBASE_SERVICE_ACCOUNT_JSON=dummy          # use real base64 JSON in production
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+```
 
-The Firebase config is **hardcoded** in `src/firebase.ts` (public-facing config values only — Firebase security is enforced via Firestore/Storage rules).
+Firebase config is hardcoded in `src/firebase.ts` (public project config, not a secret).
 
-### CSV Parsing
+## Test Suite
 
-The upload page does manual CSV parsing (no Papa Parse despite it being installed). It expects files named `TCGplayer_ShippingExport_*` and uses header index matching to extract fields. Quoted CSV values are stripped with `.replace(/^"|"$/g, "")` but complex quoted fields (commas inside quotes) are not handled.
+Tests live in `src/__tests__/api/`. Mocks in `src/__tests__/mocks/` provide reusable Firebase, EasyPost, and Stripe response builders. All tests mock `@/lib/admin` and global `fetch` — no real network calls.
+
+### Key test patterns
+
+- Use `jest.requireMock('@/lib/admin')` inside `beforeEach` to configure Firestore mock chains (avoids TDZ issues with `jest.mock` hoisting).
+- `jest.mock()` factories must not reference `const` variables — inline values directly or use `jest.fn()`.
+- Zod `.optional()` rejects `null`; omit optional fields from test fixtures rather than setting them to `null`.
+- Stripe mock instance must be captured at module level (before `clearAllMocks()` runs) because `jest.clearAllMocks()` wipes `Stripe.mock.results`.
+- Admin SDK snapshot shape: `{ exists: true, data: () => ({...}) }` — `exists` is a boolean, not a function.
+
+## shadcn MCP
+
+shadcn component server is configured in `.mcp.json` (added by `npx shadcn@latest mcp init --client claude`). Claude Code picks it up automatically.

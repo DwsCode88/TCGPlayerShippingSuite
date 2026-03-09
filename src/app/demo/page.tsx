@@ -9,7 +9,7 @@ export default function DemoPage() {
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const pdfBytes = await generateLabelWithLogo(); // Optionally pass a real logo URL
+      const pdfBytes = await generateLabelWithLogo();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
@@ -21,15 +21,38 @@ export default function DemoPage() {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">PDF Label with Logo</h1>
-      <button
-        onClick={handleGenerate}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-        disabled={loading}
-      >
-        {loading ? 'Generating...' : 'Generate PDF'}
-      </button>
+    <div
+      style={{ background: 'var(--sidebar)' }}
+      className="min-h-screen flex items-center justify-center px-6"
+    >
+      <div className="max-w-xl w-full text-center space-y-6">
+        <p
+          style={{ color: 'var(--active-color)', fontSize: '12px' }}
+          className="uppercase tracking-widest font-medium"
+        >
+          TCG Shipping Suite
+        </p>
+
+        <h1 className="text-4xl font-bold text-white leading-tight">
+          Label Preview Demo
+        </h1>
+
+        <p style={{ color: 'rgba(255,255,255,0.5)' }} className="text-base">
+          Generate a sample shipping label with logo overlay to see what your
+          labels will look like.
+        </p>
+
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <button
+            onClick={handleGenerate}
+            style={{ background: 'var(--primary-color)' }}
+            className="px-6 py-3 rounded-lg text-white font-semibold text-sm hover:opacity-90 transition disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? 'Generating...' : 'Generate PDF'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

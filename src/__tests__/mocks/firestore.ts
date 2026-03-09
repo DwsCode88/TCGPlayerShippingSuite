@@ -17,38 +17,39 @@ export const BASE_USER_SETTINGS = {
   topLoaderCost: 0.12,
 }
 
+// Admin SDK snapshots: `exists` is a boolean, not a function
 export const mockProUser = {
-  exists: () => true,
+  exists: true,
   data: () => ({ ...BASE_USER_SETTINGS, isPro: true }),
 }
 
 export const mockFreeUser = {
-  exists: () => true,
+  exists: true,
   data: () => ({ ...BASE_USER_SETTINGS, isPro: false }),
 }
 
 export const mockPlanProUser = {
-  exists: () => true,
+  exists: true,
   data: () => ({ ...BASE_USER_SETTINGS, plan: 'pro' }),
 }
 
 export const mockNoSettingsUser = {
-  exists: () => true,
+  exists: true,
   data: () => ({}),
 }
 
 export const mockUsageUnderLimit = {
-  exists: () => true,
+  exists: true,
   data: () => ({ month: CURRENT_MONTH, count: 5 }),
 }
 
 export const mockUsageAtLimit = {
-  exists: () => true,
+  exists: true,
   data: () => ({ month: CURRENT_MONTH, count: 10 }),
 }
 
 export const mockNoUsage = {
-  exists: () => false,
+  exists: false,
   data: () => ({ count: 0, month: '' }),
 }
 

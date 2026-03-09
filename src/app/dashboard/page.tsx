@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 import SidebarLayout from "@/components/SidebarLayout";
+import { Badge } from "@/components/ui/badge";
 
 type Batch = {
   id: string;
@@ -22,6 +23,8 @@ type Batch = {
   createdAtMillis?: number;
   archived?: boolean;
   userId: string;
+  labelCount?: number;
+  totalCost?: number;
 };
 
 export default function DashboardPage() {
@@ -98,91 +101,83 @@ export default function DashboardPage() {
 
   return (
     <SidebarLayout>
-      <div className="max-w-6xl mx-auto py-10 px-4 text-white">
-        <h1 className="text-2xl font-bold mb-6">📊 Dashboard Overview</h1>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white text-black rounded shadow p-4">
-            <p className="text-sm text-gray-500">Total Batches</p>
-            <p className="text-xl font-bold">{batches.length}</p>
-          </div>
-          <div className="bg-white text-black rounded shadow p-4">
-            <p className="text-sm text-gray-500">Labels Generated</p>
-            <p className="text-xl font-bold">{labelCount}</p>
-          </div>
-          <div className="bg-white text-black rounded shadow p-4">
-            <p className="text-sm text-gray-500">Postage Spent</p>
-            <p className="text-xl font-bold">${postageTotal.toFixed(2)}</p>
-          </div>
-        </div>
-
-        {/* Recent Batches */}
-        <div className="mb-10">
-          <h2 className="text-lg font-semibold mb-2">📁 Recent Batches</h2>
-          {recentBatches.length === 0 ? (
-            <p className="text-gray-400">No recent batches.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="table-auto w-full border border-white/20 text-sm">
-                <thead className="bg-white text-black">
-                  <tr>
-                    <th className="px-3 py-2 border">Batch Name</th>
-                    <th className="px-3 py-2 border">Created At</th>
-                    <th className="px-3 py-2 border">View</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentBatches.map((batch) => (
-                    <tr
-                      key={batch.id}
-                      className="border-t border-white/10 text-center"
-                    >
-                      <td className="px-3 py-2 border">
-                        {batch.batchName || "Untitled Batch"}
-                      </td>
-                      <td className="px-3 py-2 border">
-                        {batch.createdAtMillis
-                          ? new Date(batch.createdAtMillis).toLocaleString()
-                          : "N/A"}
-                      </td>
-                      <td className="px-3 py-2 border">
-                        <Link
-                          href={`/dashboard/batch/${batch.id}`}
-                          className="text-blue-500 hover:underline"
-                        >
-                          View Batch
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-3 gap-4 mb-7">
+        {[
+          { label: "Total Batches",    value: batches.length },
+          { label: "Labels Generated", value: labelCount },
+          { label: "Postage Spent",    value: `$${postageTotal.toFixed(2)}` },
+        ].map(({ label, value }) => (
+          <div
+            key={label}
+            className="rounded-xl px-5 py-5"
+            style={{ background: "var(--deepest)" }}
+          >
+            <div
+              className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+              style={{ color: "rgba(255,255,255,0.45)" }}
+            >
+              {label}
             </div>
-          )}
-        </div>
+            <div className="text-3xl font-bold text-white leading-none">{value}</div>
+            <div className="text-[11px] mt-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+              All time
+            </div>
+          </div>
+        ))}
+      </div>
 
-        {/* Quick Actions */}
-        <div className="flex gap-4 flex-wrap">
-          <Link
-            href="/upload"
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            + Upload CSV
-          </Link>
-          <Link
-            href="/dashboard/history"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            📜 View History
-          </Link>
-          <Link
-            href="/dashboard/settings"
-            className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
-          >
-            ⚙️ Settings
-          </Link>
+      {/* Recent Batches */}
+      <div className="border rounded-lg overflow-hidden" style={{ borderColor: "var(--border)" }}>
+        <div className="px-4 py-3 text-[13px] font-semibold border-b bg-white" style={{ borderColor: "var(--border)" }}>
+          Recent Batches
         </div>
+        <table className="w-full text-[13px] border-collapse">
+          <thead>
+            <tr style={{ background: "var(--stripe)" }}>
+              {["Batch Name", "Date", "Labels", "Total Cost", "Status"].map(h => (
+                <th
+                  key={h}
+                  className="px-3.5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide border-b"
+                  style={{ color: "var(--muted-foreground)", borderColor: "var(--border)" }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {recentBatches.map((batch, i) => (
+              <tr key={batch.id} style={{ background: i % 2 === 0 ? "#ffffff" : "var(--stripe)" }}>
+                <td className="px-3.5 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
+                  <Link
+                    href={`/dashboard/batch/${batch.id}`}
+                    className="hover:underline font-medium"
+                    style={{ color: "var(--primary-color)" }}
+                  >
+                    {batch.batchName ?? "Untitled Batch"}
+                  </Link>
+                </td>
+                <td className="px-3.5 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
+                  {batch.createdAtMillis
+                    ? new Date(batch.createdAtMillis).toLocaleDateString()
+                    : "—"}
+                </td>
+                <td className="px-3.5 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
+                  {batch.labelCount ?? "—"}
+                </td>
+                <td className="px-3.5 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
+                  {batch.totalCost != null ? `$${Number(batch.totalCost).toFixed(2)}` : "—"}
+                </td>
+                <td className="px-3.5 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
+                  <Badge variant={batch.archived ? "secondary" : "default"} className="text-[11px]">
+                    {batch.archived ? "Archived" : "Complete"}
+                  </Badge>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </SidebarLayout>
   );
