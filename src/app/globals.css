@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background:   var(--background);
+  --color-foreground:   var(--foreground);
+  --color-sidebar:      var(--sidebar);
+  --color-primary:      var(--primary-color);
+  --color-active:       var(--active-color);
+  --color-deepest:      var(--deepest);
+  --color-dark:         var(--dark);
+  --color-border:       var(--border);
+  --color-muted:        var(--muted);
+  --color-muted-fg:     var(--muted-foreground);
+  --color-card:         var(--card);
+  --color-stripe:       var(--stripe);
+  --color-success:      var(--success);
+  --color-success-fg:   var(--success-foreground);
+  --font-sans:          var(--font-dm-sans);
+
+  /* shadcn required tokens */
+  --color-ring:             var(--ring);
+  --color-input:            var(--input);
+  --color-destructive:      var(--destructive);
+  --color-destructive-fg:   var(--destructive-foreground);
+  --color-popover:          var(--popover);
+  --color-popover-fg:       var(--popover-foreground);
+  --color-secondary:        var(--secondary);
+  --color-secondary-fg:     var(--secondary-foreground);
+  --color-accent:           var(--accent);
+  --color-accent-fg:        var(--accent-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  /* Brand palette */
+  --background:     #ffffff;
+  --foreground:     #0f172a;
+  --sidebar:        #001242;
+  --primary-color:  #005E7C;
+  --active-color:   #0094C6;
+  --deepest:        #040F16;
+  --dark:           #000022;
+  --border:         #e2e8f0;
+  --muted:          #f8fafc;
+  --muted-foreground: #64748b;
+  --stripe:         #f8fafc;
+  --card:           #ffffff;
+
+  /* shadcn required tokens */
+  --ring:                  #0094C6;
+  --input:                 #e2e8f0;
+  --radius:                0.5rem;
+  --destructive:           #dc2626;
+  --destructive-foreground:#ffffff;
+  --popover:               #ffffff;
+  --popover-foreground:    #0f172a;
+  --secondary:             #f1f5f9;
+  --secondary-foreground:  #0f172a;
+  --accent:                rgba(0,148,198,0.1);
+  --accent-foreground:     #001242;
+  --primary:               #005E7C;
+  --primary-foreground:    #ffffff;
+  --success:              #16a34a;
+  --success-foreground:   #ffffff;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
 }

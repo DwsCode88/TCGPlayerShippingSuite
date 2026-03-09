@@ -1,31 +1,49 @@
-import { NextRequest } from 'next/server'
+/**
+ * Tests for POST /api/stripe/webhook (Hono route)
+ */
 import { makeCheckoutEvent, makeUnhandledEvent } from '../mocks/stripe'
 
-const mockConstructEvent = jest.fn()
+// Use var to avoid TDZ issues with jest.mock hoisting
+// eslint-disable-next-line no-var
+var sharedStripeWebhooks = {
+  constructEvent: jest.fn(),
+}
 
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
-    webhooks: {
-      constructEvent: mockConstructEvent,
-    },
+    webhooks: sharedStripeWebhooks,
   }))
 })
 
-jest.mock('@/firebase', () => ({ db: {}, auth: {}, storage: {} }))
-jest.mock('firebase/firestore', () => ({
-  collection: jest.fn(),
-  query: jest.fn(),
-  where: jest.fn(),
-  getDocs: jest.fn(),
-  setDoc: jest.fn().mockResolvedValue(undefined),
+jest.mock('@/lib/admin', () => ({
+  adminAuth: {
+    verifyIdToken: jest.fn().mockResolvedValue({ uid: 'user123' }),
+  },
+  adminDb: {
+    collection: jest.fn(),
+  },
 }))
 
-const { getDocs, setDoc } = jest.requireMock('firebase/firestore')
+jest.mock('firebase-admin/firestore', () => ({
+  FieldValue: { serverTimestamp: jest.fn(() => 'server-timestamp') },
+}))
 
-const MOCK_USER_DOC_REF = { id: 'user123' }
+import { app } from '@/app/api/[[...route]]/route'
+import Stripe from 'stripe'
+
+// Stripe is now lazily instantiated per-request in route.ts.
+// All mock instances share the same webhooks object defined above.
+const stripeWebhooks = sharedStripeWebhooks as {
+  constructEvent: jest.Mock
+}
+
+let mockGet: jest.Mock
+let mockSet: jest.Mock
+// The route calls docRef.set(data, options) — MOCK_USER_DOC_REF must have a set method
+let MOCK_USER_DOC_REF: { id: string; set: jest.Mock }
 
 const makeRequest = (body = 'raw-body') =>
-  new NextRequest('http://localhost/api/stripe/webhook', {
+  app.request('/api/stripe/webhook', {
     method: 'POST',
     body,
     headers: {
@@ -36,55 +54,60 @@ const makeRequest = (body = 'raw-body') =>
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockGet = jest.fn()
+  mockSet = jest.fn().mockResolvedValue(undefined)
+  MOCK_USER_DOC_REF = { id: 'user123', set: mockSet }
+
+  const { adminDb } = jest.requireMock('@/lib/admin')
+  adminDb.collection.mockReturnValue({
+    doc: jest.fn().mockReturnValue({ get: mockGet, set: mockSet }),
+    where: jest.fn().mockReturnValue({ get: mockGet }),
+  })
 })
 
 describe('POST /api/stripe/webhook', () => {
   it('returns 400 if signature verification fails', async () => {
-    const { POST } = await import('@/app/api/stripe/webhook/route')
-    mockConstructEvent.mockImplementation(() => {
+    stripeWebhooks.constructEvent.mockImplementation(() => {
       throw new Error('Invalid signature')
     })
-    const res = await POST(makeRequest())
+    const res = await makeRequest()
     expect(res.status).toBe(400)
   })
 
   it('returns 200 and does nothing for unhandled event types', async () => {
-    const { POST } = await import('@/app/api/stripe/webhook/route')
-    mockConstructEvent.mockReturnValue(makeUnhandledEvent())
-    const res = await POST(makeRequest())
+    stripeWebhooks.constructEvent.mockReturnValue(makeUnhandledEvent())
+    const res = await makeRequest()
     expect(res.status).toBe(200)
-    expect(setDoc).not.toHaveBeenCalled()
+    expect(mockSet).not.toHaveBeenCalled()
   })
 
   it('sets isPro: true on user doc when checkout.session.completed fires', async () => {
-    const { POST } = await import('@/app/api/stripe/webhook/route')
-    mockConstructEvent.mockReturnValue(makeCheckoutEvent('buyer@example.com'))
-    getDocs.mockResolvedValue({
+    stripeWebhooks.constructEvent.mockReturnValue(makeCheckoutEvent('buyer@example.com'))
+    // where().get() returns a query snapshot with docs
+    mockGet.mockResolvedValue({
       docs: [{ ref: MOCK_USER_DOC_REF }],
     })
-    const res = await POST(makeRequest())
+    const res = await makeRequest()
     expect(res.status).toBe(200)
-    expect(setDoc).toHaveBeenCalledWith(
-      MOCK_USER_DOC_REF,
-      { isPro: true },
+    // Route calls docRef.set({ isPro: true, stripeCustomerId: ... }, { merge: true })
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ isPro: true }),
       { merge: true }
     )
   })
 
   it('continues gracefully if session has no customer_email', async () => {
-    const { POST } = await import('@/app/api/stripe/webhook/route')
-    mockConstructEvent.mockReturnValue(makeCheckoutEvent(null))
-    const res = await POST(makeRequest())
+    stripeWebhooks.constructEvent.mockReturnValue(makeCheckoutEvent(null))
+    const res = await makeRequest()
     expect(res.status).toBe(200)
-    expect(setDoc).not.toHaveBeenCalled()
+    expect(mockSet).not.toHaveBeenCalled()
   })
 
   it('continues gracefully if no Firestore user matches the email', async () => {
-    const { POST } = await import('@/app/api/stripe/webhook/route')
-    mockConstructEvent.mockReturnValue(makeCheckoutEvent('nobody@example.com'))
-    getDocs.mockResolvedValue({ docs: [] })
-    const res = await POST(makeRequest())
+    stripeWebhooks.constructEvent.mockReturnValue(makeCheckoutEvent('nobody@example.com'))
+    mockGet.mockResolvedValue({ docs: [] })
+    const res = await makeRequest()
     expect(res.status).toBe(200)
-    expect(setDoc).not.toHaveBeenCalled()
+    expect(mockSet).not.toHaveBeenCalled()
   })
 })

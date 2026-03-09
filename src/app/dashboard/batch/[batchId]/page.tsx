@@ -11,11 +11,13 @@ import {
   getDocs,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "@/firebase";
+import { auth, db } from "@/firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
 import Link from "next/link";
 import { debounce } from "lodash";
 import SidebarLayout from "@/components/SidebarLayout";
 import { toast } from "react-hot-toast";
+import { Badge } from "@/components/ui/badge";
 
 type Order = {
   orderNumber: string;
@@ -36,6 +38,7 @@ type Order = {
 
 export default function BatchSummaryPage() {
   const { batchId } = useParams() as { batchId: string };
+  const [user] = useAuthState(auth);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [batchName, setBatchName] = useState("");
@@ -124,10 +127,14 @@ export default function BatchSummaryPage() {
       return;
     }
 
+    const token = await user?.getIdToken();
     const res = await fetch("/api/labels/merge", {
       method: "POST",
       body: JSON.stringify(labelUrls),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     if (!res.ok) {
@@ -151,22 +158,23 @@ export default function BatchSummaryPage() {
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-6 flex justify-between items-start flex-wrap gap-2">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+            <h1 className="text-3xl font-bold mb-1" style={{ color: "var(--foreground)" }}>
               📦 Batch Summary
             </h1>
-            <p className="text-gray-600">
+            <p style={{ color: "var(--muted-foreground)" }}>
               Batch: <strong>{batchName}</strong>
             </p>
-            <p className="text-sm text-gray-500">Created: {createdDate}</p>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Created: {createdDate}</p>
             {archived && (
-              <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded">
+              <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded" style={{ background: "rgba(220,38,38,0.15)", color: "var(--destructive)" }}>
                 ARCHIVED
               </span>
             )}
           </div>
           <Link
             href="/dashboard/history"
-            className="text-blue-600 hover:underline text-sm mt-1"
+            className="hover:underline text-sm mt-1"
+            style={{ color: "var(--primary-color)" }}
           >
             ← Back to History
           </Link>
@@ -175,7 +183,8 @@ export default function BatchSummaryPage() {
         <div className="mb-6">
           <label
             htmlFor="notes"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium"
+            style={{ color: "var(--muted-foreground)" }}
           >
             📝 Batch Notes
           </label>
@@ -191,26 +200,20 @@ export default function BatchSummaryPage() {
             className="mt-1 w-full border p-2 rounded text-sm"
             placeholder="Add notes about this batch (auto-saved)"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
             🧠 Notes auto-save while typing...
           </p>
         </div>
 
         {loading ? (
-          <p className="text-center text-gray-500">Loading...</p>
+          <p className="text-center" style={{ color: "var(--muted-foreground)" }}>Loading...</p>
         ) : orders.length === 0 ? (
-          <p className="text-center text-gray-500">
+          <p className="text-center" style={{ color: "var(--muted-foreground)" }}>
             No orders found for this batch.
           </p>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <button
-                onClick={handleDownloadCSV}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-              >
-                📄 Download TCGplayer CSV
-              </button>
+            <div className="flex flex-wrap items-center gap-3 mb-6">
               <button
                 onClick={() =>
                   downloadByType(
@@ -218,9 +221,18 @@ export default function BatchSummaryPage() {
                     "batch-all-labels.pdf"
                   )
                 }
-                className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 text-sm"
+                style={{
+                  background: "var(--primary-color)",
+                  color: "var(--primary-foreground)",
+                  border: "1.5px solid var(--primary-color)",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
               >
-                🖨 Download All Labels (PDF)
+                Download All Labels
               </button>
               <button
                 onClick={() =>
@@ -229,9 +241,18 @@ export default function BatchSummaryPage() {
                     "batch-envelope-labels.pdf"
                   )
                 }
-                className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
+                style={{
+                  background: "transparent",
+                  color: "var(--primary-color)",
+                  border: "1.5px solid var(--primary-color)",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
               >
-                ✉️ Download Envelope Labels
+                Envelopes Only
               </button>
               <button
                 onClick={() =>
@@ -240,35 +261,69 @@ export default function BatchSummaryPage() {
                     "batch-ground-labels.pdf"
                   )
                 }
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+                style={{
+                  background: "transparent",
+                  color: "var(--primary-color)",
+                  border: "1.5px solid var(--primary-color)",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
               >
-                🚚 Download Ground Advantage Labels
+                Ground Advantage Only
+              </button>
+              <button
+                onClick={handleDownloadCSV}
+                style={{
+                  background: "transparent",
+                  color: "var(--muted-foreground)",
+                  border: "1.5px solid var(--border)",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Export CSV
               </button>
             </div>
 
-            <div className="overflow-x-auto bg-white shadow rounded-lg">
-              <table className="min-w-full text-sm text-gray-800">
-                <thead className="bg-gray-100 text-xs font-semibold uppercase text-gray-500">
-                  <tr>
-                    <th className="p-3 text-left">Order #</th>
-                    <th className="p-3 text-left">Name</th>
-                    <th className="p-3 text-left">Tracking</th>
-                    <th className="p-3 text-left">💧 Sleeve</th>
-                    <th className="p-3 text-left">📎 Loader</th>
-                    <th className="p-3 text-left">✉️ Envelope</th>
-                    <th className="p-3 text-left">🛡 Shield</th>
-                    <th className="p-3 text-left">💰 Postage</th>
-                    <th className="p-3 text-left">🧾 Total</th>
-                    <th className="p-3 text-left">📝 Notes</th>
-                    <th className="p-3 text-left">Label</th>
+            <div
+              className="overflow-x-auto rounded-lg"
+              style={{ border: "1px solid var(--border)" }}
+            >
+              <table className="min-w-full text-sm" style={{ borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Order #</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Name</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Tracking</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Type</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Sleeve</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Loader</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Envelope</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Shield</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Postage</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Total</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Notes</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Label</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((o, i) => (
-                    <tr key={i} className="border-t hover:bg-gray-50">
+                    <tr
+                      key={i}
+                      style={{
+                        background: i % 2 === 0 ? "var(--background)" : "var(--stripe)",
+                        borderBottom: "1px solid var(--border)",
+                      }}
+                    >
                       <td className="p-3">{o.orderNumber}</td>
                       <td className="p-3">{o.toName}</td>
-                      <td className="p-3 text-xs text-gray-600">
+                      <td className="p-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
                         {o.trackingCode}
                         {o.trackingUrl && (
                           <div>
@@ -276,11 +331,34 @@ export default function BatchSummaryPage() {
                               href={o.trackingUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-500 underline"
+                              style={{ color: "var(--primary-color)", textDecoration: "underline" }}
                             >
                               Track Package
                             </a>
                           </div>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {o.useEnvelope ? (
+                          <Badge
+                            style={{
+                              background: "rgba(0,148,198,0.15)",
+                              color: "var(--active-color)",
+                              border: "none",
+                            }}
+                          >
+                            Envelope
+                          </Badge>
+                        ) : (
+                          <Badge
+                            style={{
+                              background: "rgba(22,163,74,0.15)",
+                              color: "var(--success)",
+                              border: "none",
+                            }}
+                          >
+                            Ground
+                          </Badge>
                         )}
                       </td>
                       <td className="p-3">
@@ -301,7 +379,7 @@ export default function BatchSummaryPage() {
                       <td className="p-3 font-semibold">
                         ${o.totalCost?.toFixed(2) || "0.00"}
                       </td>
-                      <td className="p-3 text-xs text-gray-600">
+                      <td className="p-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
                         {o.notes || ""}
                       </td>
                       <td className="p-3">
@@ -309,7 +387,8 @@ export default function BatchSummaryPage() {
                           href={o.labelUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
+                          style={{ color: "var(--primary-color)" }}
+                          className="hover:underline"
                         >
                           View
                         </a>
@@ -318,8 +397,8 @@ export default function BatchSummaryPage() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-gray-50 font-semibold">
-                    <td colSpan={3} className="p-3">
+                  <tr style={{ background: "var(--stripe)", borderTop: "1px solid var(--border)", fontWeight: 600 }}>
+                    <td colSpan={4} className="p-3">
                       Totals
                     </td>
                     <td className="p-3">${sum("pennyCost")}</td>

@@ -1,7 +1,15 @@
-// app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import { DM_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import DevAutoLoginLoader from "@/components/DevAutoLoginLoader";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-dm-sans",
+});
 
 export const metadata: Metadata = {
   title: "TCG Shipping Suite",
@@ -11,13 +19,27 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={dmSans.variable}>
       <body>
+        {process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && <DevAutoLoginLoader />}
         {children}
-        <Toaster position="top-right" />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
+              fontSize: "13px",
+              background: "var(--sidebar)",
+              color: "#ffffff",
+              border: "1px solid rgba(255,255,255,0.1)",
+            },
+            success: { iconTheme: { primary: "var(--active-color)", secondary: "#ffffff" } },
+            error:   { iconTheme: { primary: "var(--destructive)",  secondary: "#ffffff" } },
+          }}
+        />
       </body>
     </html>
   );
