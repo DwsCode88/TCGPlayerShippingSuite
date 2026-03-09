@@ -17,6 +17,7 @@ import Link from "next/link";
 import { debounce } from "lodash";
 import SidebarLayout from "@/components/SidebarLayout";
 import { toast } from "react-hot-toast";
+import { Badge } from "@/components/ui/badge";
 
 type Order = {
   orderNumber: string;
@@ -210,13 +211,7 @@ export default function BatchSummaryPage() {
           </p>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <button
-                onClick={handleDownloadCSV}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-              >
-                📄 Download TCGplayer CSV
-              </button>
+            <div className="flex flex-wrap items-center gap-3 mb-6">
               <button
                 onClick={() =>
                   downloadByType(
@@ -224,9 +219,18 @@ export default function BatchSummaryPage() {
                     "batch-all-labels.pdf"
                   )
                 }
-                className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 text-sm"
+                style={{
+                  background: "var(--primary-color)",
+                  color: "#fff",
+                  border: "1.5px solid var(--primary-color)",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
               >
-                🖨 Download All Labels (PDF)
+                Download All Labels
               </button>
               <button
                 onClick={() =>
@@ -235,9 +239,18 @@ export default function BatchSummaryPage() {
                     "batch-envelope-labels.pdf"
                   )
                 }
-                className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
+                style={{
+                  background: "transparent",
+                  color: "var(--primary-color)",
+                  border: "1.5px solid var(--primary-color)",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
               >
-                ✉️ Download Envelope Labels
+                Envelopes Only
               </button>
               <button
                 onClick={() =>
@@ -246,35 +259,69 @@ export default function BatchSummaryPage() {
                     "batch-ground-labels.pdf"
                   )
                 }
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+                style={{
+                  background: "transparent",
+                  color: "var(--primary-color)",
+                  border: "1.5px solid var(--primary-color)",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
               >
-                🚚 Download Ground Advantage Labels
+                Ground Advantage Only
+              </button>
+              <button
+                onClick={handleDownloadCSV}
+                style={{
+                  background: "transparent",
+                  color: "#6b7280",
+                  border: "1.5px solid var(--border)",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Export CSV
               </button>
             </div>
 
-            <div className="overflow-x-auto bg-white shadow rounded-lg">
-              <table className="min-w-full text-sm text-gray-800">
-                <thead className="bg-gray-100 text-xs font-semibold uppercase text-gray-500">
-                  <tr>
-                    <th className="p-3 text-left">Order #</th>
-                    <th className="p-3 text-left">Name</th>
-                    <th className="p-3 text-left">Tracking</th>
-                    <th className="p-3 text-left">💧 Sleeve</th>
-                    <th className="p-3 text-left">📎 Loader</th>
-                    <th className="p-3 text-left">✉️ Envelope</th>
-                    <th className="p-3 text-left">🛡 Shield</th>
-                    <th className="p-3 text-left">💰 Postage</th>
-                    <th className="p-3 text-left">🧾 Total</th>
-                    <th className="p-3 text-left">📝 Notes</th>
-                    <th className="p-3 text-left">Label</th>
+            <div
+              className="overflow-x-auto rounded-lg"
+              style={{ border: "1px solid var(--border)" }}
+            >
+              <table className="min-w-full text-sm" style={{ borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Order #</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Name</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Tracking</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Type</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Sleeve</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Loader</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Envelope</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Shield</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Postage</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Total</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Notes</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Label</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((o, i) => (
-                    <tr key={i} className="border-t hover:bg-gray-50">
+                    <tr
+                      key={i}
+                      style={{
+                        background: i % 2 === 0 ? "var(--background)" : "var(--stripe)",
+                        borderBottom: "1px solid var(--border)",
+                      }}
+                    >
                       <td className="p-3">{o.orderNumber}</td>
                       <td className="p-3">{o.toName}</td>
-                      <td className="p-3 text-xs text-gray-600">
+                      <td className="p-3 text-xs" style={{ color: "#6b7280" }}>
                         {o.trackingCode}
                         {o.trackingUrl && (
                           <div>
@@ -287,6 +334,29 @@ export default function BatchSummaryPage() {
                               Track Package
                             </a>
                           </div>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {o.useEnvelope ? (
+                          <Badge
+                            style={{
+                              background: "rgba(0,148,198,0.15)",
+                              color: "#0094C6",
+                              border: "none",
+                            }}
+                          >
+                            Envelope
+                          </Badge>
+                        ) : (
+                          <Badge
+                            style={{
+                              background: "rgba(22,163,74,0.15)",
+                              color: "#16a34a",
+                              border: "none",
+                            }}
+                          >
+                            Ground
+                          </Badge>
                         )}
                       </td>
                       <td className="p-3">
@@ -307,7 +377,7 @@ export default function BatchSummaryPage() {
                       <td className="p-3 font-semibold">
                         ${o.totalCost?.toFixed(2) || "0.00"}
                       </td>
-                      <td className="p-3 text-xs text-gray-600">
+                      <td className="p-3 text-xs" style={{ color: "#6b7280" }}>
                         {o.notes || ""}
                       </td>
                       <td className="p-3">
@@ -315,7 +385,8 @@ export default function BatchSummaryPage() {
                           href={o.labelUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
+                          style={{ color: "var(--primary-color)" }}
+                          className="hover:underline"
                         >
                           View
                         </a>
@@ -324,8 +395,8 @@ export default function BatchSummaryPage() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-gray-50 font-semibold">
-                    <td colSpan={3} className="p-3">
+                  <tr style={{ background: "var(--stripe)", borderTop: "1px solid var(--border)", fontWeight: 600 }}>
+                    <td colSpan={4} className="p-3">
                       Totals
                     </td>
                     <td className="p-3">${sum("pennyCost")}</td>
