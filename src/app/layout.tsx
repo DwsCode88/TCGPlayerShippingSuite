@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { DM_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <html lang="en" className={dmSans.variable}>
@@ -29,12 +30,12 @@ export default function RootLayout({
             style: {
               fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
               fontSize: "13px",
-              background: "#001242",
+              background: "var(--sidebar)",
               color: "#ffffff",
               border: "1px solid rgba(255,255,255,0.1)",
             },
-            success: { iconTheme: { primary: "#0094C6", secondary: "#ffffff" } },
-            error:   { iconTheme: { primary: "#dc2626",  secondary: "#ffffff" } },
+            success: { iconTheme: { primary: "var(--active-color)", secondary: "#ffffff" } },
+            error:   { iconTheme: { primary: "var(--destructive)",  secondary: "#ffffff" } },
           }}
         />
       </body>
