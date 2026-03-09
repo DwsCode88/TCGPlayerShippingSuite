@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { DM_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
-import DevAutoLogin from "@/components/DevAutoLogin";
+import dynamic from "next/dynamic";
+
+const DevAutoLogin = dynamic(() => import("@/components/DevAutoLogin"), {
+  ssr: false,
+});
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
