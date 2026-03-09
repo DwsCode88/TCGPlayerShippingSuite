@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { DM_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import DevAutoLogin from "@/components/DevAutoLogin";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={dmSans.variable}>
       <body>
+        {process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && <DevAutoLogin />}
         {children}
         <Toaster
           position="top-right"

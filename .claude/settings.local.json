@@ -17,7 +17,9 @@
       "Bash(/c/Users/RC/github/TCGPlayerShippingSuite/CLAUDE.md:*)",
       "Bash(grep:*)",
       "Bash(npx shadcn@latest:*)",
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "Bash(npm run:*)",
+      "Bash(npx next:*)"
     ]
   }
 }

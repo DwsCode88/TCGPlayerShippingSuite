@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 const PROTECTED_PREFIXES = ["/dashboard", "/upload", "/admin"];
 
 export function middleware(req: NextRequest) {
+  // In local dev with emulators, skip the cookie check entirely
+  if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true") {
+    return NextResponse.next();
+  }
+
   const { pathname } = req.nextUrl;
 
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>
