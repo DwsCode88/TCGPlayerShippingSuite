@@ -4,6 +4,59 @@ import { useEffect, useState } from "react";
 import { fetchUserSettings, saveUserSettings } from "@/lib/userSettings";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "@/firebase";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+
+const inputStyle: React.CSSProperties = {
+  background: "white",
+  border: "1.5px solid var(--sidebar)",
+  borderRadius: "6px",
+  padding: "6px 10px",
+  fontSize: "13px",
+  outline: "none",
+  width: "100%",
+  color: "#111",
+};
+
+const saveBtnStyle: React.CSSProperties = {
+  background: "var(--primary-color)",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "5px 14px",
+  fontSize: "13px",
+  fontWeight: 500,
+  cursor: "pointer",
+  marginTop: "10px",
+};
+
+const removeBtnStyle: React.CSSProperties = {
+  background: "rgba(220,38,38,0.1)",
+  color: "var(--destructive)",
+  border: "none",
+  borderRadius: "6px",
+  padding: "3px 10px",
+  fontSize: "12px",
+  cursor: "pointer",
+};
+
+const addBtnStyle: React.CSSProperties = {
+  background: "transparent",
+  color: "var(--primary-color)",
+  border: "1.5px solid var(--primary-color)",
+  borderRadius: "6px",
+  padding: "5px 14px",
+  fontSize: "13px",
+  fontWeight: 500,
+  cursor: "pointer",
+  marginTop: "8px",
+};
 
 export default function SettingsForm({ user }: { user: any }) {
   const [easypostApiKey, setEasypostApiKey] = useState("");
@@ -37,6 +90,7 @@ export default function SettingsForm({ user }: { user: any }) {
   const [showKey, setShowKey] = useState(true);
   const [loading, setLoading] = useState(true);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [showAddPackage, setShowAddPackage] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -147,6 +201,7 @@ export default function SettingsForm({ user }: { user: any }) {
       width: "",
       height: "",
     });
+    setShowAddPackage(false);
   };
 
   const removePackageType = (index: number) => {
@@ -155,333 +210,525 @@ export default function SettingsForm({ user }: { user: any }) {
 
   if (!user || loading) {
     return (
-      <div className="text-center text-white py-10">Loading settings...</div>
+      <div className="text-center py-10" style={{ color: "var(--sidebar)" }}>
+        Loading settings...
+      </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-6 bg-gray-900 text-gray-100 rounded shadow">
-      <h2 className="text-xl font-bold">⚙️ Your Settings</h2>
-
-      {/* API Key */}
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">
-          EasyPost API Key
-        </label>
-        <div className="flex gap-2 items-center">
-          <input
-            type={showKey ? "text" : "password"}
-            name="fake-password"
-            autoComplete="new-password"
-            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-            value={easypostApiKey}
-            placeholder="Enter EasyPost API Key"
-            onChange={(e) => setEasypostApiKey(e.target.value)}
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="text-sm text-blue-400 underline"
-          >
-            {showKey ? "Hide" : "Show"}
-          </button>
-        </div>
-        <button
-          onClick={handleTestKey}
-          className="mt-2 text-sm bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded"
-        >
-          🔍 Test Key
-        </button>
-        {testResult && (
-          <div className="mt-2 text-sm text-yellow-300">{testResult}</div>
-        )}
-      </div>
-
-      {/* Logo Upload */}
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">
-          Upload Logo
-        </label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleLogoUpload}
-          className="block w-full text-sm text-gray-300"
-        />
-        {logoUrl && (
-          <img
-            src={logoUrl}
-            alt="Uploaded logo"
-            className="mt-2 w-32 h-auto border border-gray-600 rounded"
-          />
-        )}
-      </div>
-
-      {/* Value Threshold */}
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1 flex items-center gap-1">
-          Value Threshold
-          <span className="ml-1 w-5 h-5 text-sm text-black bg-yellow-300 rounded-full flex items-center justify-center cursor-help shadow-lg hover:scale-105 transition-transform relative group">
-            ?
-            <span className="absolute bottom-full mb-1 w-48 text-xs text-white bg-black rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              Orders with value above this will ship Ground Advantage instead of
-              Envelope.
-            </span>
-          </span>
-        </label>
-        <input
-          type="number"
-          value={valueThreshold}
-          onChange={(e) => setValueThreshold(Number(e.target.value))}
-          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-          placeholder="e.g. 20"
-        />
-      </div>
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">
-          Card Count Threshold (Non-Machinable)
-        </label>
-        <input
-          type="number"
-          min={0}
-          value={cardCountThreshold}
-          onChange={(e) => setCardCountThreshold(Number(e.target.value))}
-          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-          placeholder="e.g. 10"
-        />
-      </div>
-
-      {/* Costs */}
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">
-          Envelope Cost ($)
-        </label>
-        <input
-          type="number"
-          min={0}
-          step={0.01}
-          value={envelopeCost}
-          onChange={(e) => setEnvelopeCost(parseFloat(e.target.value))}
-          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">
-          Shield Cost ($)
-        </label>
-        <input
-          type="number"
-          min={0}
-          step={0.01}
-          value={shieldCost}
-          onChange={(e) => setShieldCost(parseFloat(e.target.value))}
-          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">
-          Penny Sleeve Cost ($)
-        </label>
-        <input
-          type="number"
-          min={0}
-          step={0.01}
-          value={pennySleeveCost}
-          onChange={(e) => setPennySleeveCost(parseFloat(e.target.value))}
-          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm text-gray-300 font-medium mb-1">
-          Top Loader Cost ($)
-        </label>
-        <input
-          type="number"
-          min={0}
-          step={0.01}
-          value={topLoaderCost}
-          onChange={(e) => setTopLoaderCost(parseFloat(e.target.value))}
-          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
-        />
-      </div>
-
-      {/* Defaults */}
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={usePennySleeves}
-          onChange={(e) => setUsePennySleeves(e.target.checked)}
-          className="w-4 h-4"
-        />
-        <label className="text-sm text-gray-300">
-          Use Penny Sleeves by Default
-        </label>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={defaultNonMachinable}
-          onChange={(e) => setDefaultNonMachinable(e.target.checked)}
-          className="w-4 h-4"
-        />
-        <label className="text-sm text-gray-300">
-          Default to Non-Machinable
-        </label>
-      </div>
-
-      {/* From Address */}
-      <div>
-        <h3 className="text-lg font-semibold mt-6 mb-2">📮 From Address</h3>
-        <input
-          type="text"
-          placeholder="Name"
-          className="w-full p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
-          value={fromAddress.name}
-          onChange={(e) => updateAddressField("name", e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Street"
-          className="w-full p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
-          value={fromAddress.street1}
-          onChange={(e) => updateAddressField("street1", e.target.value)}
-        />
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="City"
-            className="w-full p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
-            value={fromAddress.city}
-            onChange={(e) => updateAddressField("city", e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="State"
-            className="w-1/3 p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
-            value={fromAddress.state}
-            onChange={(e) => updateAddressField("state", e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="ZIP"
-            className="w-1/3 p-2 mb-2 rounded bg-gray-800 text-white border border-gray-700"
-            value={fromAddress.zip}
-            onChange={(e) => updateAddressField("zip", e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Package Types */}
-      <div>
-        <h3 className="text-lg font-semibold">📦 Custom Package Types</h3>
-        {packageTypes.length > 0 && (
-          <ul className="space-y-2">
-            {packageTypes.map((pkg, i) => (
-              <li
-                key={i}
-                className="flex justify-between items-center bg-gray-800 p-2 rounded"
-              >
-                <span className="text-sm">
-                  {pkg.name} – {pkg.weight}oz – {pkg.predefined_package} –{" "}
-                  {pkg.length}" x {pkg.width}" x {pkg.height}"
-                </span>
-                <button
-                  onClick={() => removePackageType(i)}
-                  className="text-red-400 hover:underline text-sm"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="mt-4 space-y-2">
-          <input
-            type="text"
-            placeholder="Package Name"
-            value={newPackage.name}
-            onChange={(e) =>
-              setNewPackage({ ...newPackage, name: e.target.value })
-            }
-            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-600"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="number"
-              placeholder="Weight (oz)"
-              value={newPackage.weight}
-              onChange={(e) =>
-                setNewPackage({
-                  ...newPackage,
-                  weight: parseFloat(e.target.value),
-                })
-              }
-              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
-            />
-            <select
-              value={newPackage.predefined_package}
-              onChange={(e) =>
-                setNewPackage({
-                  ...newPackage,
-                  predefined_package: e.target.value,
-                })
-              }
-              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
-            >
-              <option value="Letter">Letter</option>
-              <option value="Parcel">Parcel</option>
-              <option value="Flat">Flat</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <input
-              type="text"
-              placeholder="Length (in)"
-              value={newPackage.length}
-              onChange={(e) =>
-                setNewPackage({ ...newPackage, length: e.target.value })
-              }
-              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
-            />
-            <input
-              type="text"
-              placeholder="Width (in)"
-              value={newPackage.width}
-              onChange={(e) =>
-                setNewPackage({ ...newPackage, width: e.target.value })
-              }
-              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
-            />
-            <input
-              type="text"
-              placeholder="Height (in)"
-              value={newPackage.height}
-              onChange={(e) =>
-                setNewPackage({ ...newPackage, height: e.target.value })
-              }
-              className="p-2 rounded bg-gray-800 text-white border border-gray-600"
-            />
-          </div>
-          <button
-            onClick={addPackageType}
-            className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm"
-          >
-            ➕ Add Package Type
-          </button>
-        </div>
-      </div>
-
-      <button
-        onClick={handleSave}
-        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-semibold"
+    <div className="max-w-xl mx-auto p-6 space-y-4">
+      <h2
+        className="text-xl font-bold"
+        style={{ color: "var(--sidebar-text, #1a2332)" }}
       >
-        💾 Save Settings
-      </button>
+        Settings
+      </h2>
+
+      <Accordion type="multiple" className="space-y-2">
+        {/* Section 1: EasyPost API Key */}
+        <AccordionItem
+          value="api-key"
+          className="border rounded-lg overflow-hidden"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <AccordionTrigger className="px-4 py-3 text-[13.5px] font-medium hover:no-underline">
+            EasyPost API Key
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-0">
+            <div className="space-y-2">
+              <div className="flex gap-2 items-center">
+                <input
+                  type={showKey ? "text" : "password"}
+                  name="fake-password"
+                  autoComplete="new-password"
+                  style={inputStyle}
+                  value={easypostApiKey}
+                  placeholder="Enter EasyPost API Key"
+                  onChange={(e) => setEasypostApiKey(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--primary-color)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {showKey ? "Hide" : "Show"}
+                </button>
+              </div>
+              <div className="flex gap-2 items-center">
+                <button
+                  type="button"
+                  onClick={handleTestKey}
+                  style={{
+                    ...saveBtnStyle,
+                    marginTop: 0,
+                    background: "var(--sidebar)",
+                  }}
+                >
+                  Test Key
+                </button>
+                {testResult && (
+                  <span style={{ fontSize: "12px", color: "#b45309" }}>
+                    {testResult}
+                  </span>
+                )}
+              </div>
+              <button type="button" onClick={handleSave} style={saveBtnStyle}>
+                Save
+              </button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Section 2: From Address */}
+        <AccordionItem
+          value="from-address"
+          className="border rounded-lg overflow-hidden"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <AccordionTrigger className="px-4 py-3 text-[13.5px] font-medium hover:no-underline">
+            From Address
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-0">
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Name"
+                style={inputStyle}
+                value={fromAddress.name}
+                onChange={(e) => updateAddressField("name", e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Street"
+                style={inputStyle}
+                value={fromAddress.street1}
+                onChange={(e) => updateAddressField("street1", e.target.value)}
+              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="City"
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={fromAddress.city}
+                  onChange={(e) => updateAddressField("city", e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="State"
+                  style={{ ...inputStyle, width: "70px", flex: "none" }}
+                  value={fromAddress.state}
+                  onChange={(e) => updateAddressField("state", e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="ZIP"
+                  style={{ ...inputStyle, width: "80px", flex: "none" }}
+                  value={fromAddress.zip}
+                  onChange={(e) => updateAddressField("zip", e.target.value)}
+                />
+              </div>
+              <button type="button" onClick={handleSave} style={saveBtnStyle}>
+                Save
+              </button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Section 3: Costs & Supplies */}
+        <AccordionItem
+          value="costs"
+          className="border rounded-lg overflow-hidden"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <AccordionTrigger className="px-4 py-3 text-[13.5px] font-medium hover:no-underline">
+            Costs &amp; Supplies
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-0">
+            <div className="space-y-3">
+              <div>
+                <label
+                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                >
+                  Envelope Cost ($)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  style={inputStyle}
+                  value={envelopeCost}
+                  onChange={(e) => setEnvelopeCost(parseFloat(e.target.value))}
+                />
+              </div>
+              <div>
+                <label
+                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                >
+                  Shield Cost ($)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  style={inputStyle}
+                  value={shieldCost}
+                  onChange={(e) => setShieldCost(parseFloat(e.target.value))}
+                />
+              </div>
+              <div>
+                <label
+                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                >
+                  Penny Sleeve Cost ($)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  style={inputStyle}
+                  value={pennySleeveCost}
+                  onChange={(e) =>
+                    setPennySleeveCost(parseFloat(e.target.value))
+                  }
+                />
+              </div>
+              <div>
+                <label
+                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                >
+                  Top Loader Cost ($)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  style={inputStyle}
+                  value={topLoaderCost}
+                  onChange={(e) => setTopLoaderCost(parseFloat(e.target.value))}
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <Checkbox
+                  id="usePennySleeves"
+                  checked={usePennySleeves}
+                  onCheckedChange={(checked) =>
+                    setUsePennySleeves(checked === true)
+                  }
+                />
+                <label
+                  htmlFor="usePennySleeves"
+                  style={{ fontSize: "13px", cursor: "pointer" }}
+                >
+                  Use penny sleeves by default
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="defaultNonMachinable"
+                  checked={defaultNonMachinable}
+                  onCheckedChange={(checked) =>
+                    setDefaultNonMachinable(checked === true)
+                  }
+                />
+                <label
+                  htmlFor="defaultNonMachinable"
+                  style={{ fontSize: "13px", cursor: "pointer" }}
+                >
+                  Default non-machinable
+                </label>
+              </div>
+              <button type="button" onClick={handleSave} style={saveBtnStyle}>
+                Save
+              </button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Section 4: Thresholds */}
+        <AccordionItem
+          value="thresholds"
+          className="border rounded-lg overflow-hidden"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <AccordionTrigger className="px-4 py-3 text-[13.5px] font-medium hover:no-underline">
+            Thresholds
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-0">
+            <div className="space-y-3">
+              <div>
+                <label
+                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                >
+                  Value Threshold ($) — orders above this ship Ground Advantage
+                </label>
+                <input
+                  type="number"
+                  style={inputStyle}
+                  value={valueThreshold}
+                  onChange={(e) => setValueThreshold(Number(e.target.value))}
+                  placeholder="e.g. 25"
+                />
+              </div>
+              <div>
+                <label
+                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                >
+                  Card Count Threshold — orders above this count ship Ground Advantage
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  style={inputStyle}
+                  value={cardCountThreshold}
+                  onChange={(e) =>
+                    setCardCountThreshold(Number(e.target.value))
+                  }
+                  placeholder="e.g. 8"
+                />
+              </div>
+              <Separator />
+              <div>
+                <label
+                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                >
+                  Non-Machinable Card Count Threshold — orders above this mark envelope non-machinable
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  style={inputStyle}
+                  value={cardCountThreshold}
+                  onChange={(e) =>
+                    setCardCountThreshold(Number(e.target.value))
+                  }
+                  placeholder="e.g. 8"
+                />
+              </div>
+              <button type="button" onClick={handleSave} style={saveBtnStyle}>
+                Save
+              </button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Section 5: Custom Package Types */}
+        <AccordionItem
+          value="packages"
+          className="border rounded-lg overflow-hidden"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <AccordionTrigger className="px-4 py-3 text-[13.5px] font-medium hover:no-underline">
+            Custom Package Types
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-0">
+            <div className="space-y-2">
+              {packageTypes.length > 0 && (
+                <ul className="space-y-1">
+                  {packageTypes.map((pkg, i) => (
+                    <li
+                      key={i}
+                      className="flex justify-between items-center rounded px-3 py-2"
+                      style={{
+                        background: "rgba(0,148,198,0.05)",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <span style={{ fontSize: "12px", color: "#333" }}>
+                        {pkg.name} – {pkg.weight}oz – {pkg.predefined_package}{" "}
+                        – {pkg.length}" x {pkg.width}" x {pkg.height}"
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removePackageType(i)}
+                        style={removeBtnStyle}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {!showAddPackage && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddPackage(true)}
+                  style={addBtnStyle}
+                >
+                  + Add Package Type
+                </button>
+              )}
+
+              {showAddPackage && (
+                <div
+                  className="space-y-2 p-3 rounded-lg"
+                  style={{
+                    border: "1px dashed var(--border)",
+                    marginTop: "8px",
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Package Name"
+                    style={inputStyle}
+                    value={newPackage.name}
+                    onChange={(e) =>
+                      setNewPackage({ ...newPackage, name: e.target.value })
+                    }
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      placeholder="Weight (oz)"
+                      style={inputStyle}
+                      value={newPackage.weight}
+                      onChange={(e) =>
+                        setNewPackage({
+                          ...newPackage,
+                          weight: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <select
+                      style={inputStyle}
+                      value={newPackage.predefined_package}
+                      onChange={(e) =>
+                        setNewPackage({
+                          ...newPackage,
+                          predefined_package: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="Letter">Letter</option>
+                      <option value="Parcel">Parcel</option>
+                      <option value="Flat">Flat</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Length (in)"
+                      style={inputStyle}
+                      value={newPackage.length}
+                      onChange={(e) =>
+                        setNewPackage({ ...newPackage, length: e.target.value })
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Width (in)"
+                      style={inputStyle}
+                      value={newPackage.width}
+                      onChange={(e) =>
+                        setNewPackage({ ...newPackage, width: e.target.value })
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Height (in)"
+                      style={inputStyle}
+                      value={newPackage.height}
+                      onChange={(e) =>
+                        setNewPackage({
+                          ...newPackage,
+                          height: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={addPackageType}
+                      style={saveBtnStyle}
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddPackage(false)}
+                      style={{
+                        ...saveBtnStyle,
+                        background: "rgba(100,100,100,0.15)",
+                        color: "#555",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <button type="button" onClick={handleSave} style={saveBtnStyle}>
+                Save
+              </button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Section 6: Logo */}
+        <AccordionItem
+          value="logo"
+          className="border rounded-lg overflow-hidden"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <AccordionTrigger className="px-4 py-3 text-[13.5px] font-medium hover:no-underline">
+            Logo
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-0">
+            <div className="space-y-3">
+              <div
+                className="flex flex-col items-center justify-center rounded-lg p-6 text-center"
+                style={{
+                  border: "2px dashed var(--border)",
+                  background: "rgba(0,148,198,0.03)",
+                }}
+              >
+                <p style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}>
+                  Upload PNG or JPG, max 2MB
+                </p>
+                <label
+                  htmlFor="logo-upload"
+                  style={{
+                    ...saveBtnStyle,
+                    display: "inline-block",
+                    marginTop: 0,
+                    cursor: "pointer",
+                  }}
+                >
+                  Choose File
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleLogoUpload}
+                    style={{ display: "none" }}
+                  />
+                </label>
+              </div>
+              {logoUrl && (
+                <img
+                  src={logoUrl}
+                  alt="Uploaded logo"
+                  className="w-32 h-auto rounded"
+                  style={{ border: "1px solid var(--border)" }}
+                />
+              )}
+              <button type="button" onClick={handleSave} style={saveBtnStyle}>
+                Save
+              </button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
