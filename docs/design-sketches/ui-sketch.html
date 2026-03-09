@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TCGPlayerShippingSuite — UI Sketch</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar:   #001242;
+      --bg:        #ffffff;
+      --active:    #0094C6;
+      --primary:   #005E7C;
+      --dark:      #000022;
+      --deepest:   #040F16;
+      --border:    #e2e8f0;
+      --stripe:    #f8fafc;
+      --text:      #0f172a;
+      --muted:     #64748b;
+      --font:      'DM Sans', sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: #f1f5f9;
+      color: var(--text);
+    }
+
+    /* ── SECTION LABELS ─────────────────────────────── */
+    .screen-label {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      padding: 32px 0 12px 0;
+      text-align: center;
+    }
+
+    .screen-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px 48px;
+    }
+
+    .shadow-card {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12);
+    }
+
+    /* ══════════════════════════════════════════════════
+       1. APP SHELL — DASHBOARD
+    ══════════════════════════════════════════════════ */
+    .app-shell {
+      display: flex;
+      height: 640px;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--sidebar);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    .sidebar-brand {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .sidebar-brand-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -.01em;
+    }
+
+    .sidebar-brand-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,.45);
+      margin-top: 2px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 0;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #ffffff;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background .15s;
+      position: relative;
+    }
+
+    .nav-item.active {
+      background: rgba(0,148,198,.15);
+      border-left-color: var(--active);
+      color: #ffffff;
+    }
+
+    .nav-item .nav-icon {
+      width: 16px;
+      height: 16px;
+      opacity: .75;
+      flex-shrink: 0;
+    }
+
+    .nav-item.active .nav-icon { opacity: 1; }
+
+    .nav-badge {
+      margin-left: auto;
+      background: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.7);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .nav-badge.admin {
+      background: rgba(0,148,198,.3);
+      color: var(--active);
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    .signout-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: rgba(255,255,255,.55);
+      cursor: pointer;
+    }
+
+    /* CONTENT */
+    .content {
+      flex: 1;
+      background: var(--bg);
+      overflow-y: auto;
+      padding: 28px 32px;
+    }
+
+    /* STAT CARDS */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--deepest);
+      border-radius: 10px;
+      padding: 20px 22px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.45);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,.3);
+      margin-top: 6px;
+    }
+
+    /* TABLE */
+    .table-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .table-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      background: #f8fafc;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:nth-child(even) { background: var(--stripe); }
+    tbody tr:nth-child(odd)  { background: #fff; }
+
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-green  { background: #dcfce7; color: #166534; }
+    .badge-blue   { background: #dbeafe; color: #1e40af; }
+    .badge-yellow { background: #fef9c3; color: #854d0e; }
+    .badge-gray   { background: #f1f5f9; color: #475569; }
+
+
+    /* ══════════════════════════════════════════════════
+       2. UPLOAD PAGE
+    ══════════════════════════════════════════════════ */
+    .upload-zone {
+      background: var(--sidebar);
+      border-radius: 10px;
+      padding: 36px;
+      text-align: center;
+      margin-bottom: 24px;
+      border: 2px dashed rgba(0,148,198,.4);
+    }
+
+    .upload-icon-wrap {
+      width: 56px;
+      height: 56px;
+      background: rgba(0,148,198,.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+
+    .upload-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .upload-sub {
+      font-size: 12px;
+      color: rgba(255,255,255,.45);
+      margin-bottom: 18px;
+    }
+
+    /* Package select + weight inline */
+    .pkg-select {
+      height: 28px;
+      border: 1.5px solid var(--border);
+      border-radius: 5px;
+      padding: 0 6px;
+      font-size: 12px;
+      font-family: var(--font);
+      color: var(--text);
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+      min-width: 110px;
+    }
+
+    .weight-input {
+      height: 28px;
+      width: 40px;
+      border: 1.5px solid var(--active);
+      border-radius: 5px;
+      padding: 0 6px;
+      font-size: 12px;
+      font-family: var(--font);
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      text-align: center;
+    }
+
+    .weight-unit {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .weight-sep {
+      font-size: 11px;
+      color: var(--border);
+    }
+
+    .weight-prompt {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--active);
+      font-weight: 600;
+    }
+
+    /* ══════════════════════════════════════════════════
+       3. SETTINGS PAGE (Accordion)
+    ══════════════════════════════════════════════════ */
+    .accordion {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .accordion-item {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .accordion-item:last-child { border-bottom: none; }
+
+    .accordion-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 18px;
+      background: #fff;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .accordion-chevron {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .accordion-content {
+      background: #f8fafc;
+      padding: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* FORM INPUTS */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .form-input {
+      height: 36px;
+      border: 1.5px solid var(--sidebar);
+      border-radius: 6px;
+      padding: 0 10px;
+      font-size: 13px;
+      font-family: var(--font);
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--active);
+      box-shadow: 0 0 0 3px rgba(0,148,198,.15);
+    }
+
+    /* ══════════════════════════════════════════════════
+       4. BUTTONS
+    ══════════════════════════════════════════════════ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    /* ══════════════════════════════════════════════════
+       5. BILLING PAGE
+    ══════════════════════════════════════════════════ */
+    .billing-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      max-width: 480px;
+    }
+
+    .billing-header {
+      background: var(--deepest);
+      padding: 20px 22px;
+    }
+
+    .billing-plan {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.4);
+      margin-bottom: 4px;
+    }
+
+    .billing-plan-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--active);
+    }
+
+    .billing-body {
+      background: #fff;
+      padding: 20px 22px;
+    }
+
+    .usage-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--active);
+      border-radius: 99px;
+      width: 70%;
+    }
+
+    /* ══════════════════════════════════════════════════
+       6. LOGIN PAGE
+    ══════════════════════════════════════════════════ */
+    .login-page {
+      background: var(--sidebar);
+      min-height: 520px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+    }
+
+    .login-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 36px 32px;
+      width: 360px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+
+    .login-logo {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--sidebar);
+      margin-bottom: 4px;
+    }
+
+    .login-tagline {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .login-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .login-divider::before,
+    .login-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .google-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font);
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    /* ══════════════════════════════════════════════════
+       7. LANDING PAGE
+    ══════════════════════════════════════════════════ */
+    .landing-page {
+      background: var(--sidebar);
+      min-height: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 48px 32px;
+      border-radius: 12px;
+    }
+
+    .landing-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--active);
+      margin-bottom: 14px;
+    }
+
+    .landing-headline {
+      font-size: 36px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.15;
+      max-width: 480px;
+      margin-bottom: 14px;
+    }
+
+    .landing-sub {
+      font-size: 15px;
+      color: rgba(255,255,255,.5);
+      max-width: 380px;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    /* ══════════════════════════════════════════════════
+       8. ALERT DIALOG
+    ══════════════════════════════════════════════════ */
+    .dialog-overlay {
+      background: rgba(0,0,0,.5);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      min-height: 260px;
+    }
+
+    .dialog-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px 26px;
+      width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+
+    .dialog-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .dialog-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* SVG ICON HELPERS */
+    svg { display: inline-block; vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 1 — DASHBOARD (App Shell)
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Screen 1 — Dashboard (App Shell)</div>
+  <div class="shadow-card">
+    <div class="app-shell">
+
+      <!-- SIDEBAR -->
+      <nav class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-name">TCG Shipping</div>
+          <div class="sidebar-brand-sub">Shipping Suite</div>
+        </div>
+        <div class="sidebar-nav">
+          <div class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 6.5L8 2l6 4.5V14H2V6.5z"/>
+            </svg>
+            Dashboard
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 13V7l5-5 5 5v6H3z"/><path d="M8 8v5"/>
+            </svg>
+            Upload Orders
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M8 1v8M5 6l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/>
+            </svg>
+            Single Label
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 7h6M5 10h4"/>
+            </svg>
+            History
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/>
+            </svg>
+            Settings
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="4" width="12" height="9" rx="1"/><path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/>
+            </svg>
+            Billing
+          </div>
+          <div class="nav-item" style="margin-top:8px; border-top:1px solid rgba(255,255,255,.06); padding-top:14px;">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="5" r="2.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/>
+            </svg>
+            Admin
+            <span class="nav-badge admin">Admin</span>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <div class="signout-btn">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M10 8H2m0 0l3-3M2 8l3 3"/><path d="M6 4V2h8v12H6v-2"/>
+            </svg>
+            Sign out
+          </div>
+        </div>
+      </nav>
+
+      <!-- CONTENT -->
+      <div class="content">
+        <!-- STAT CARDS -->
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Batches</div>
+            <div class="stat-value">142</div>
+            <div class="stat-sub">All time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Labels Generated</div>
+            <div class="stat-value">3,891</div>
+            <div class="stat-sub">All time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Postage Spent</div>
+            <div class="stat-value">$2,451</div>
+            <div class="stat-sub">All time</div>
+          </div>
+        </div>
+
+        <!-- RECENT BATCHES TABLE -->
+        <div class="table-card">
+          <div class="table-title">Recent Batches</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Batch Name</th>
+                <th>Date</th>
+                <th>Labels</th>
+                <th>Total Cost</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>March Week 1</td>
+                <td>Mar 7, 2026</td>
+                <td>48</td>
+                <td>$31.44</td>
+                <td><span class="badge badge-green">Complete</span></td>
+              </tr>
+              <tr>
+                <td>February Bulk</td>
+                <td>Feb 28, 2026</td>
+                <td>112</td>
+                <td>$73.28</td>
+                <td><span class="badge badge-green">Complete</span></td>
+              </tr>
+              <tr>
+                <td>Feb High Value</td>
+                <td>Feb 20, 2026</td>
+                <td>23</td>
+                <td>$28.52</td>
+                <td><span class="badge badge-blue">Archived</span></td>
+              </tr>
+              <tr>
+                <td>Feb Week 2</td>
+                <td>Feb 14, 2026</td>
+                <td>67</td>
+                <td>$43.89</td>
+                <td><span class="badge badge-green">Complete</span></td>
+              </tr>
+              <tr>
+                <td>Jan Clearout</td>
+                <td>Jan 31, 2026</td>
+                <td>204</td>
+                <td>$133.48</td>
+                <td><span class="badge badge-gray">Archived</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 2 — UPLOAD PAGE
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Screen 2 — Upload Orders</div>
+  <div class="shadow-card">
+    <div class="app-shell">
+      <nav class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-name">TCG Shipping</div>
+          <div class="sidebar-brand-sub">Shipping Suite</div>
+        </div>
+        <div class="sidebar-nav">
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H2V6.5z"/></svg>
+            Dashboard
+          </div>
+          <div class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V7l5-5 5 5v6H3z"/><path d="M8 8v5"/></svg>
+            Upload Orders
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v8M5 6l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+            Single Label
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 7h6M5 10h4"/></svg>
+            History
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            Settings
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9" rx="1"/><path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+            Billing
+          </div>
+          <div class="nav-item" style="margin-top:8px; border-top:1px solid rgba(255,255,255,.06); padding-top:14px;">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="2.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>
+            Admin
+            <span class="nav-badge admin">Admin</span>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <div class="signout-btn">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 8H2m0 0l3-3M2 8l3 3"/><path d="M6 4V2h8v12H6v-2"/></svg>
+            Sign out
+          </div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="upload-zone">
+          <div class="upload-icon-wrap">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0094C6" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="upload-title">Drop your CSV here</div>
+          <div class="upload-sub">or click to browse — supports TCGPlayer order export format</div>
+          <button class="btn btn-primary" style="margin: 0 auto;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Browse File
+          </button>
+        </div>
+        <div class="table-card">
+          <div class="table-title" style="display:flex;align-items:center;justify-content:space-between;">
+            Order Preview — 48 orders
+            <div class="btn-group" style="margin:0;">
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;">Clear</button>
+              <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;">Generate Labels</button>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Buyer</th>
+                <th>City, State</th>
+                <th>Package</th>
+                <th>Weight</th>
+                <th>Est. Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Envelope (default) — no weight prompt needed -->
+              <tr>
+                <td>ORDER-001</td><td>John Smith</td><td>Austin, TX</td>
+                <td>
+                  <select class="pkg-select">
+                    <option selected>Envelope</option>
+                    <option>Small Box (6×4×2)</option>
+                    <option>Bubble Mailer</option>
+                  </select>
+                </td>
+                <td><span style="font-size:12px;">0 lb / 1 oz</span></td>
+                <td>$0.73</td>
+              </tr>
+              <!-- Custom package selected — weight prompt shown -->
+              <tr style="background:#eff9ff;">
+                <td>ORDER-002</td><td>Sarah Lee</td><td>Portland, OR</td>
+                <td>
+                  <select class="pkg-select" style="border-color:var(--active);">
+                    <option>Envelope</option>
+                    <option selected>Small Box (6×4×2)</option>
+                    <option>Bubble Mailer</option>
+                  </select>
+                </td>
+                <td>
+                  <span class="weight-prompt">
+                    <input class="weight-input" type="text" placeholder="0" value="1" />
+                    <span class="weight-sep">/</span>
+                    <input class="weight-input" type="text" placeholder="0" value="8" />
+                    <span class="weight-unit">oz</span>
+                  </span>
+                </td>
+                <td>$5.40</td>
+              </tr>
+              <!-- Envelope (default) -->
+              <tr>
+                <td>ORDER-003</td><td>Mike Chen</td><td>Chicago, IL</td>
+                <td>
+                  <select class="pkg-select">
+                    <option selected>Envelope</option>
+                    <option>Small Box (6×4×2)</option>
+                    <option>Bubble Mailer</option>
+                  </select>
+                </td>
+                <td><span style="font-size:12px;">0 lb / 1 oz</span></td>
+                <td>$0.73</td>
+              </tr>
+              <!-- Bubble Mailer selected — weight prompt, empty -->
+              <tr style="background:#eff9ff;">
+                <td>ORDER-004</td><td>Amy Park</td><td>Seattle, WA</td>
+                <td>
+                  <select class="pkg-select" style="border-color:var(--active);">
+                    <option>Envelope</option>
+                    <option>Small Box (6×4×2)</option>
+                    <option selected>Bubble Mailer</option>
+                  </select>
+                </td>
+                <td>
+                  <span class="weight-prompt">
+                    <input class="weight-input" type="text" placeholder="0" />
+                    <span class="weight-sep">/</span>
+                    <input class="weight-input" type="text" placeholder="0" />
+                    <span class="weight-unit">oz</span>
+                  </span>
+                </td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 3 — SETTINGS (Accordion)
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Screen 3 — Settings (Accordion)</div>
+  <div class="shadow-card">
+    <div class="app-shell">
+      <nav class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-name">TCG Shipping</div>
+          <div class="sidebar-brand-sub">Shipping Suite</div>
+        </div>
+        <div class="sidebar-nav">
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H2V6.5z"/></svg>
+            Dashboard
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V7l5-5 5 5v6H3z"/><path d="M8 8v5"/></svg>
+            Upload Orders
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v8M5 6l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+            Single Label
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 7h6M5 10h4"/></svg>
+            History
+          </div>
+          <div class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            Settings
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9" rx="1"/><path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+            Billing
+          </div>
+          <div class="nav-item" style="margin-top:8px; border-top:1px solid rgba(255,255,255,.06); padding-top:14px;">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="2.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>
+            Admin
+            <span class="nav-badge admin">Admin</span>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <div class="signout-btn">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 8H2m0 0l3-3M2 8l3 3"/><path d="M6 4V2h8v12H6v-2"/></svg>
+            Sign out
+          </div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="accordion">
+
+          <div class="accordion-item">
+            <div class="accordion-trigger">
+              EasyPost API Key
+              <span class="accordion-chevron">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="form-group" style="max-width:360px;">
+                <div class="form-label">API Key</div>
+                <input class="form-input" type="password" value="EZAKtest_abc123••••••" />
+              </div>
+              <div style="margin-top:10px;">
+                <button class="btn btn-primary" style="font-size:12px;">Save Key</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-trigger" onclick="toggleAccordion(this)">
+              From Address
+              <span class="accordion-chevron">▶</span>
+            </div>
+            <div class="accordion-content" style="display:none;">
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="form-label">Full Name</div>
+                  <input class="form-input" type="text" value="John's Card Shop" />
+                </div>
+                <div class="form-group">
+                  <div class="form-label">Street</div>
+                  <input class="form-input" type="text" value="123 Main St" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="form-label">City</div>
+                  <input class="form-input" type="text" value="Springfield" />
+                </div>
+                <div class="form-group">
+                  <div class="form-label">State</div>
+                  <input class="form-input" type="text" value="IL" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="form-label">ZIP</div>
+                  <input class="form-input" type="text" value="62701" />
+                </div>
+                <div class="form-group"></div>
+              </div>
+              <button class="btn btn-primary" style="font-size:12px; margin-top:4px;">Save Address</button>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-trigger" onclick="toggleAccordion(this)">
+              Costs &amp; Supplies
+              <span class="accordion-chevron">▶</span>
+            </div>
+            <div class="accordion-content" style="display:none;">
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="form-label">Envelope Cost ($)</div>
+                  <input class="form-input" type="text" value="0.10" />
+                </div>
+                <div class="form-group">
+                  <div class="form-label">Shipping Shield ($)</div>
+                  <input class="form-input" type="text" value="0.25" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="form-label">Penny Sleeve ($)</div>
+                  <input class="form-input" type="text" value="0.02" />
+                </div>
+                <div class="form-group">
+                  <div class="form-label">Top Loader ($)</div>
+                  <input class="form-input" type="text" value="0.15" />
+                </div>
+              </div>
+              <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="chk-penny" checked style="accent-color:var(--primary);" />
+                <label for="chk-penny" style="font-size:13px; color:var(--text);">Use penny sleeves by default</label>
+              </div>
+              <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="chk-nm" style="accent-color:var(--primary);" />
+                <label for="chk-nm" style="font-size:13px; color:var(--text);">Default non-machinable</label>
+              </div>
+              <button class="btn btn-primary" style="font-size:12px; margin-top:12px;">Save Costs</button>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-trigger" onclick="toggleAccordion(this)">
+              Thresholds
+              <span class="accordion-chevron">▶</span>
+            </div>
+            <div class="accordion-content" style="display:none;">
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="form-label">Value Threshold ($)</div>
+                  <input class="form-input" type="text" value="20.00" />
+                </div>
+                <div class="form-group">
+                  <div class="form-label">Card Count Threshold</div>
+                  <input class="form-input" type="text" value="5" />
+                </div>
+              </div>
+              <p style="font-size:11px; color:var(--muted); margin-top:6px; margin-bottom:14px; line-height:1.5;">Orders above the value threshold or card count will use Ground Advantage instead of envelope.</p>
+              <div style="border-top:1px solid var(--border); padding-top:14px;">
+                <div class="form-group" style="max-width:200px; margin-bottom:6px;">
+                  <div class="form-label">Non-Machinable Card Count</div>
+                  <input class="form-input" type="text" value="3" />
+                </div>
+                <p style="font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5;">Envelopes with this many cards or more will be marked non-machinable.</p>
+              </div>
+              <button class="btn btn-primary" style="font-size:12px; margin-top:14px;">Save Thresholds</button>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-trigger" onclick="toggleAccordion(this)">
+              Custom Package Types
+              <span class="accordion-chevron">▶</span>
+            </div>
+            <div class="accordion-content" style="display:none;">
+              <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:13px;">
+                  <span>Small Box <span style="color:var(--muted); font-size:11px;">6×4×2 in</span></span>
+                  <button class="btn btn-danger" style="font-size:11px; padding:3px 8px;">Remove</button>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:13px;">
+                  <span>Bubble Mailer <span style="color:var(--muted); font-size:11px;">9×6×2 in</span></span>
+                  <button class="btn btn-danger" style="font-size:11px; padding:3px 8px;">Remove</button>
+                </div>
+              </div>
+              <button class="btn btn-outline" style="font-size:12px;">+ Add Package Type</button>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <div class="accordion-trigger" onclick="toggleAccordion(this)">
+              Logo
+              <span class="accordion-chevron">▶</span>
+            </div>
+            <div class="accordion-content" style="display:none;">
+              <div style="display:flex; align-items:center; gap:16px;">
+                <div style="width:64px; height:64px; border:1.5px dashed var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; background:#f8fafc;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </div>
+                <div>
+                  <button class="btn btn-outline" style="font-size:12px;">Upload Logo</button>
+                  <p style="font-size:11px; color:var(--muted); margin-top:4px;">PNG or JPG, max 2MB</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 4 — BILLING
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Screen 4 — Billing</div>
+  <div class="shadow-card">
+    <div class="app-shell">
+      <nav class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-name">TCG Shipping</div>
+          <div class="sidebar-brand-sub">Shipping Suite</div>
+        </div>
+        <div class="sidebar-nav">
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H2V6.5z"/></svg>
+            Dashboard
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V7l5-5 5 5v6H3z"/><path d="M8 8v5"/></svg>
+            Upload Orders
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v8M5 6l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+            Single Label
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 7h6M5 10h4"/></svg>
+            History
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            Settings
+          </div>
+          <div class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9" rx="1"/><path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+            Billing
+          </div>
+          <div class="nav-item" style="margin-top:8px; border-top:1px solid rgba(255,255,255,.06); padding-top:14px;">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="2.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>
+            Admin
+            <span class="nav-badge admin">Admin</span>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <div class="signout-btn">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 8H2m0 0l3-3M2 8l3 3"/><path d="M6 4V2h8v12H6v-2"/></svg>
+            Sign out
+          </div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="billing-card">
+          <div class="billing-header">
+            <div class="billing-plan">Current Plan</div>
+            <div class="billing-plan-name">Free Tier</div>
+          </div>
+          <div class="billing-body">
+            <div class="usage-label">
+              <span>Labels used this month</span>
+              <span style="font-weight:600; color: var(--text);">7 / 10</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width:70%;"></div>
+            </div>
+            <p style="font-size:12px; color:var(--muted); margin-bottom:16px; line-height:1.6;">
+              You have <strong>3 labels remaining</strong> this month. Upgrade to Pro for unlimited labels, priority support, and advanced features.
+            </p>
+            <button class="btn btn-primary">Upgrade to Pro — $9/mo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 5 — LOGIN PAGE
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Screen 5 — Login Page</div>
+  <div class="shadow-card">
+    <div class="login-page">
+      <div class="login-card">
+        <div class="login-logo">TCG Shipping Suite</div>
+        <div class="login-tagline">Ship smarter. Print faster.</div>
+        <button class="google-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+        <div class="login-divider">or</div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <div class="form-label">Email</div>
+          <input class="form-input" style="width:100%;" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <div class="form-label">Password</div>
+          <input class="form-input" style="width:100%;" type="password" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center;">Sign In</button>
+        <p style="text-align:center; font-size:12px; color:var(--muted); margin-top:14px;">
+          Don't have an account? <a href="#" style="color:var(--primary); font-weight:600;">Sign up</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 6 — LANDING PAGE
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Screen 6 — Landing Page</div>
+  <div class="shadow-card">
+    <div class="landing-page">
+      <div class="landing-eyebrow">TCGPlayer Shipping Suite</div>
+      <div class="landing-headline">Batch labels in seconds, not hours</div>
+      <div class="landing-sub">Upload your TCGPlayer orders, generate USPS labels, and print — all in one place.</div>
+      <div style="display:flex; gap:12px;">
+        <button class="btn btn-primary" style="padding:11px 24px; font-size:14px;">Get Started Free</button>
+        <button class="btn" style="padding:11px 24px; font-size:14px; background:rgba(255,255,255,.1); color:#fff; border:1.5px solid rgba(255,255,255,.2);">Watch Demo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 7 — BATCH DETAIL (Button Group at Top)
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Screen 7 — Batch Detail</div>
+  <div class="shadow-card">
+    <div class="app-shell">
+      <nav class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-name">TCG Shipping</div>
+          <div class="sidebar-brand-sub">Shipping Suite</div>
+        </div>
+        <div class="sidebar-nav">
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H2V6.5z"/></svg>
+            Dashboard
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V7l5-5 5 5v6H3z"/><path d="M8 8v5"/></svg>
+            Upload Orders
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v8M5 6l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+            Single Label
+          </div>
+          <div class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 7h6M5 10h4"/></svg>
+            History
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            Settings
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9" rx="1"/><path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+            Billing
+          </div>
+          <div class="nav-item" style="margin-top:8px; border-top:1px solid rgba(255,255,255,.06); padding-top:14px;">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="2.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>
+            Admin
+            <span class="nav-badge admin">Admin</span>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <div class="signout-btn">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 8H2m0 0l3-3M2 8l3 3"/><path d="M6 4V2h8v12H6v-2"/></svg>
+            Sign out
+          </div>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="btn-group">
+          <button class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Download All Labels
+          </button>
+          <button class="btn btn-outline">Envelopes Only</button>
+          <button class="btn btn-outline">Ground Advantage Only</button>
+          <button class="btn btn-ghost">Export CSV</button>
+        </div>
+        <div class="table-card">
+          <div class="table-title">March Week 1 — 48 orders</div>
+          <table>
+            <thead>
+              <tr><th>Order #</th><th>Buyer</th><th>Tracking</th><th>Label Cost</th><th>Supplies</th><th>Total</th><th>Type</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>ORDER-001</td><td>John Smith</td><td>9400111899...4</td><td>$0.63</td><td>$0.10</td><td>$0.73</td><td><span class="badge badge-blue">Envelope</span></td></tr>
+              <tr><td>ORDER-002</td><td>Sarah Lee</td><td>9400111899...5</td><td>$5.40</td><td>$0.00</td><td>$5.40</td><td><span class="badge badge-green">Ground</span></td></tr>
+              <tr><td>ORDER-003</td><td>Mike Chen</td><td>9400111899...6</td><td>$0.63</td><td>$0.10</td><td>$0.73</td><td><span class="badge badge-blue">Envelope</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 8 — ALERT DIALOG
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Screen 8 — AlertDialog (Destructive Confirmation)</div>
+  <div class="shadow-card">
+    <div class="dialog-overlay">
+      <div class="dialog-box">
+        <div class="dialog-title">Archive this batch?</div>
+        <div class="dialog-desc">This will move "March Week 1" to your archived batches. You can still access it from History.</div>
+        <div class="dialog-actions">
+          <button class="btn btn-ghost">Cancel</button>
+          <button class="btn btn-danger">Archive Batch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     COLOR PALETTE REFERENCE
+════════════════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <div class="screen-label">Color Palette Reference</div>
+  <div style="display:flex; gap:12px; justify-content:center; padding-bottom:48px;">
+    <div style="text-align:center;">
+      <div style="width:80px;height:80px;background:#000022;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);"></div>
+      <div style="font-size:11px;margin-top:6px;color:#64748b;">#000022</div>
+      <div style="font-size:10px;color:#94a3b8;">Dark BG</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:80px;height:80px;background:#001242;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);"></div>
+      <div style="font-size:11px;margin-top:6px;color:#64748b;">#001242</div>
+      <div style="font-size:10px;color:#94a3b8;">Sidebar</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:80px;height:80px;background:#0094C6;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);"></div>
+      <div style="font-size:11px;margin-top:6px;color:#64748b;">#0094C6</div>
+      <div style="font-size:10px;color:#94a3b8;">Active / Accent</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:80px;height:80px;background:#005E7C;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);"></div>
+      <div style="font-size:11px;margin-top:6px;color:#64748b;">#005E7C</div>
+      <div style="font-size:10px;color:#94a3b8;">Primary Btn</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:80px;height:80px;background:#040F16;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);"></div>
+      <div style="font-size:11px;margin-top:6px;color:#64748b;">#040F16</div>
+      <div style="font-size:10px;color:#94a3b8;">Stat Cards</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleAccordion(trigger) {
+    const content = trigger.nextElementSibling;
+    const chevron = trigger.querySelector('.accordion-chevron');
+    const isOpen = content.style.display !== 'none';
+    content.style.display = isOpen ? 'none' : 'block';
+    chevron.textContent = isOpen ? '▶' : '▼';
+  }
+</script>
+</body>
+</html>
