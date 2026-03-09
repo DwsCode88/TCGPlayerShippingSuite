@@ -13,6 +13,8 @@
   --color-muted-fg:     var(--muted-foreground);
   --color-card:         var(--card);
   --color-stripe:       var(--stripe);
+  --color-success:      var(--success);
+  --color-success-fg:   var(--success-foreground);
   --font-sans:          var(--font-dm-sans);
 
   /* shadcn required tokens */
@@ -60,6 +62,8 @@
   --accent-foreground:     #001242;
   --primary:               #005E7C;
   --primary-foreground:    #ffffff;
+  --success:              #16a34a;
+  --success-foreground:   #ffffff;
 }
 
 body {

@@ -223,7 +223,7 @@ export default function BatchSummaryPage() {
                 }
                 style={{
                   background: "var(--primary-color)",
-                  color: "#fff",
+                  color: "var(--primary-foreground)",
                   border: "1.5px solid var(--primary-color)",
                   borderRadius: 6,
                   padding: "7px 16px",
@@ -343,7 +343,7 @@ export default function BatchSummaryPage() {
                           <Badge
                             style={{
                               background: "rgba(0,148,198,0.15)",
-                              color: "#0094C6",
+                              color: "var(--active-color)",
                               border: "none",
                             }}
                           >
@@ -353,7 +353,7 @@ export default function BatchSummaryPage() {
                           <Badge
                             style={{
                               background: "rgba(22,163,74,0.15)",
-                              color: "#16a34a",
+                              color: "var(--success)",
                               border: "none",
                             }}
                           >
