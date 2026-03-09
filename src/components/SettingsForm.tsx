@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { fetchUserSettings, saveUserSettings } from "@/lib/userSettings";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "@/firebase";
+import toast from "react-hot-toast";
 import {
   Accordion,
   AccordionContent,
@@ -21,8 +22,11 @@ const inputStyle: React.CSSProperties = {
   fontSize: "13px",
   outline: "none",
   width: "100%",
-  color: "#111",
+  color: "var(--foreground)",
 };
+
+const inputClassName =
+  "focus:outline-none focus:ring-2 focus:ring-[var(--active-color)] focus:ring-offset-0";
 
 const saveBtnStyle: React.CSSProperties = {
   background: "var(--primary-color)",
@@ -69,6 +73,7 @@ export default function SettingsForm({ user }: { user: any }) {
   const [usePennySleeves, setUsePennySleeves] = useState(true);
   const [defaultNonMachinable, setDefaultNonMachinable] = useState(false);
   const [cardCountThreshold, setCardCountThreshold] = useState<number>(0);
+  const [nonMachinableCardCountThreshold, setNonMachinableCardCountThreshold] = useState<number>(5);
 
   const [fromAddress, setFromAddress] = useState({
     name: "",
@@ -87,7 +92,7 @@ export default function SettingsForm({ user }: { user: any }) {
     height: "",
   });
 
-  const [showKey, setShowKey] = useState(true);
+  const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [showAddPackage, setShowAddPackage] = useState(false);
@@ -127,6 +132,12 @@ export default function SettingsForm({ user }: { user: any }) {
             ? settings.cardCountThreshold
             : 8
         );
+        setNonMachinableCardCountThreshold(
+          typeof settings.nonMachinableCardCountThreshold === "number" &&
+            settings.nonMachinableCardCountThreshold > 0
+            ? settings.nonMachinableCardCountThreshold
+            : 5
+        );
         setPackageTypes(settings.packageTypes || []);
       }
       setLoading(false);
@@ -150,8 +161,9 @@ export default function SettingsForm({ user }: { user: any }) {
       valueThreshold,
       packageTypes,
       cardCountThreshold,
+      nonMachinableCardCountThreshold,
     });
-    alert("✅ Settings saved!");
+    toast.success("Settings saved!");
   };
 
   const handleTestKey = async () => {
@@ -225,7 +237,7 @@ export default function SettingsForm({ user }: { user: any }) {
         Settings
       </h2>
 
-      <Accordion type="multiple" className="space-y-2">
+      <Accordion multiple={true} className="space-y-2">
         {/* Section 1: EasyPost API Key */}
         <AccordionItem
           value="api-key"
@@ -243,6 +255,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   name="fake-password"
                   autoComplete="new-password"
                   style={inputStyle}
+                  className={inputClassName}
                   value={easypostApiKey}
                   placeholder="Enter EasyPost API Key"
                   onChange={(e) => setEasypostApiKey(e.target.value)}
@@ -275,7 +288,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   Test Key
                 </button>
                 {testResult && (
-                  <span style={{ fontSize: "12px", color: "#b45309" }}>
+                  <span style={{ fontSize: "12px", color: "var(--active-color)" }}>
                     {testResult}
                   </span>
                 )}
@@ -302,6 +315,7 @@ export default function SettingsForm({ user }: { user: any }) {
                 type="text"
                 placeholder="Name"
                 style={inputStyle}
+                className={inputClassName}
                 value={fromAddress.name}
                 onChange={(e) => updateAddressField("name", e.target.value)}
               />
@@ -309,6 +323,7 @@ export default function SettingsForm({ user }: { user: any }) {
                 type="text"
                 placeholder="Street"
                 style={inputStyle}
+                className={inputClassName}
                 value={fromAddress.street1}
                 onChange={(e) => updateAddressField("street1", e.target.value)}
               />
@@ -317,6 +332,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   type="text"
                   placeholder="City"
                   style={{ ...inputStyle, flex: 1 }}
+                  className={inputClassName}
                   value={fromAddress.city}
                   onChange={(e) => updateAddressField("city", e.target.value)}
                 />
@@ -324,6 +340,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   type="text"
                   placeholder="State"
                   style={{ ...inputStyle, width: "70px", flex: "none" }}
+                  className={inputClassName}
                   value={fromAddress.state}
                   onChange={(e) => updateAddressField("state", e.target.value)}
                 />
@@ -331,6 +348,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   type="text"
                   placeholder="ZIP"
                   style={{ ...inputStyle, width: "80px", flex: "none" }}
+                  className={inputClassName}
                   value={fromAddress.zip}
                   onChange={(e) => updateAddressField("zip", e.target.value)}
                 />
@@ -355,7 +373,7 @@ export default function SettingsForm({ user }: { user: any }) {
             <div className="space-y-3">
               <div>
                 <label
-                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                  style={{ fontSize: "12px", color: "var(--muted-foreground)", display: "block", marginBottom: "4px" }}
                 >
                   Envelope Cost ($)
                 </label>
@@ -364,13 +382,14 @@ export default function SettingsForm({ user }: { user: any }) {
                   min={0}
                   step={0.01}
                   style={inputStyle}
+                  className={inputClassName}
                   value={envelopeCost}
                   onChange={(e) => setEnvelopeCost(parseFloat(e.target.value))}
                 />
               </div>
               <div>
                 <label
-                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                  style={{ fontSize: "12px", color: "var(--muted-foreground)", display: "block", marginBottom: "4px" }}
                 >
                   Shield Cost ($)
                 </label>
@@ -379,13 +398,14 @@ export default function SettingsForm({ user }: { user: any }) {
                   min={0}
                   step={0.01}
                   style={inputStyle}
+                  className={inputClassName}
                   value={shieldCost}
                   onChange={(e) => setShieldCost(parseFloat(e.target.value))}
                 />
               </div>
               <div>
                 <label
-                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                  style={{ fontSize: "12px", color: "var(--muted-foreground)", display: "block", marginBottom: "4px" }}
                 >
                   Penny Sleeve Cost ($)
                 </label>
@@ -394,6 +414,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   min={0}
                   step={0.01}
                   style={inputStyle}
+                  className={inputClassName}
                   value={pennySleeveCost}
                   onChange={(e) =>
                     setPennySleeveCost(parseFloat(e.target.value))
@@ -402,7 +423,7 @@ export default function SettingsForm({ user }: { user: any }) {
               </div>
               <div>
                 <label
-                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                  style={{ fontSize: "12px", color: "var(--muted-foreground)", display: "block", marginBottom: "4px" }}
                 >
                   Top Loader Cost ($)
                 </label>
@@ -411,6 +432,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   min={0}
                   step={0.01}
                   style={inputStyle}
+                  className={inputClassName}
                   value={topLoaderCost}
                   onChange={(e) => setTopLoaderCost(parseFloat(e.target.value))}
                 />
@@ -465,13 +487,14 @@ export default function SettingsForm({ user }: { user: any }) {
             <div className="space-y-3">
               <div>
                 <label
-                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                  style={{ fontSize: "12px", color: "var(--muted-foreground)", display: "block", marginBottom: "4px" }}
                 >
                   Value Threshold ($) — orders above this ship Ground Advantage
                 </label>
                 <input
                   type="number"
                   style={inputStyle}
+                  className={inputClassName}
                   value={valueThreshold}
                   onChange={(e) => setValueThreshold(Number(e.target.value))}
                   placeholder="e.g. 25"
@@ -479,7 +502,7 @@ export default function SettingsForm({ user }: { user: any }) {
               </div>
               <div>
                 <label
-                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                  style={{ fontSize: "12px", color: "var(--muted-foreground)", display: "block", marginBottom: "4px" }}
                 >
                   Card Count Threshold — orders above this count ship Ground Advantage
                 </label>
@@ -487,6 +510,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   type="number"
                   min={0}
                   style={inputStyle}
+                  className={inputClassName}
                   value={cardCountThreshold}
                   onChange={(e) =>
                     setCardCountThreshold(Number(e.target.value))
@@ -497,7 +521,7 @@ export default function SettingsForm({ user }: { user: any }) {
               <Separator />
               <div>
                 <label
-                  style={{ fontSize: "12px", color: "#555", display: "block", marginBottom: "4px" }}
+                  style={{ fontSize: "12px", color: "var(--muted-foreground)", display: "block", marginBottom: "4px" }}
                 >
                   Non-Machinable Card Count Threshold — orders above this mark envelope non-machinable
                 </label>
@@ -505,11 +529,12 @@ export default function SettingsForm({ user }: { user: any }) {
                   type="number"
                   min={0}
                   style={inputStyle}
-                  value={cardCountThreshold}
+                  className={inputClassName}
+                  value={nonMachinableCardCountThreshold}
                   onChange={(e) =>
-                    setCardCountThreshold(Number(e.target.value))
+                    setNonMachinableCardCountThreshold(Number(e.target.value))
                   }
-                  placeholder="e.g. 8"
+                  placeholder="e.g. 5"
                 />
               </div>
               <button type="button" onClick={handleSave} style={saveBtnStyle}>
@@ -541,7 +566,7 @@ export default function SettingsForm({ user }: { user: any }) {
                         border: "1px solid var(--border)",
                       }}
                     >
-                      <span style={{ fontSize: "12px", color: "#333" }}>
+                      <span style={{ fontSize: "12px", color: "var(--foreground)" }}>
                         {pkg.name} – {pkg.weight}oz – {pkg.predefined_package}{" "}
                         – {pkg.length}" x {pkg.width}" x {pkg.height}"
                       </span>
@@ -579,6 +604,7 @@ export default function SettingsForm({ user }: { user: any }) {
                     type="text"
                     placeholder="Package Name"
                     style={inputStyle}
+                    className={inputClassName}
                     value={newPackage.name}
                     onChange={(e) =>
                       setNewPackage({ ...newPackage, name: e.target.value })
@@ -589,6 +615,7 @@ export default function SettingsForm({ user }: { user: any }) {
                       type="number"
                       placeholder="Weight (oz)"
                       style={inputStyle}
+                      className={inputClassName}
                       value={newPackage.weight}
                       onChange={(e) =>
                         setNewPackage({
@@ -617,6 +644,7 @@ export default function SettingsForm({ user }: { user: any }) {
                       type="text"
                       placeholder="Length (in)"
                       style={inputStyle}
+                      className={inputClassName}
                       value={newPackage.length}
                       onChange={(e) =>
                         setNewPackage({ ...newPackage, length: e.target.value })
@@ -626,6 +654,7 @@ export default function SettingsForm({ user }: { user: any }) {
                       type="text"
                       placeholder="Width (in)"
                       style={inputStyle}
+                      className={inputClassName}
                       value={newPackage.width}
                       onChange={(e) =>
                         setNewPackage({ ...newPackage, width: e.target.value })
@@ -635,6 +664,7 @@ export default function SettingsForm({ user }: { user: any }) {
                       type="text"
                       placeholder="Height (in)"
                       style={inputStyle}
+                      className={inputClassName}
                       value={newPackage.height}
                       onChange={(e) =>
                         setNewPackage({
@@ -658,7 +688,7 @@ export default function SettingsForm({ user }: { user: any }) {
                       style={{
                         ...saveBtnStyle,
                         background: "rgba(100,100,100,0.15)",
-                        color: "#555",
+                        color: "var(--muted-foreground)",
                       }}
                     >
                       Cancel
@@ -692,7 +722,7 @@ export default function SettingsForm({ user }: { user: any }) {
                   background: "rgba(0,148,198,0.03)",
                 }}
               >
-                <p style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}>
+                <p style={{ fontSize: "12px", color: "var(--muted-foreground)", marginBottom: "10px" }}>
                   Upload PNG or JPG, max 2MB
                 </p>
                 <label
