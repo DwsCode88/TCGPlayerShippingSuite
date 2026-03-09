@@ -440,6 +440,7 @@ function UploadContent() {
                       "City / State",
                       "Package",
                       "Weight",
+                      "Est. Cost",
                     ].map((col) => (
                       <th
                         key={col}
@@ -535,6 +536,19 @@ function UploadContent() {
                           </select>
                         </td>
 
+                        {/* Est. Cost */}
+                        <td
+                          style={{
+                            padding: "0.5rem 0.75rem",
+                            whiteSpace: "nowrap",
+                            color: "var(--muted-foreground)",
+                          }}
+                        >
+                          {"rate" in o && typeof (o as ParsedRow & { rate?: number }).rate === "number"
+                            ? `$${((o as ParsedRow & { rate: number }).rate).toFixed(2)}`
+                            : "—"}
+                        </td>
+
                         {/* Weight */}
                         <td style={{ padding: "0.5rem 0.75rem" }}>
                           {isNonEnvelope ? (
@@ -559,7 +573,7 @@ function UploadContent() {
                                   borderRadius: "0.25rem",
                                   padding: "0.2rem 0.4rem",
                                   fontSize: "0.8125rem",
-                                  background: "rgba(255,255,255,0.9)",
+                                  background: "var(--background)",
                                   color: "var(--foreground)",
                                   textAlign: "center",
                                 }}
@@ -587,7 +601,7 @@ function UploadContent() {
                                   borderRadius: "0.25rem",
                                   padding: "0.2rem 0.4rem",
                                   fontSize: "0.8125rem",
-                                  background: "rgba(255,255,255,0.9)",
+                                  background: "var(--background)",
                                   color: "var(--foreground)",
                                   textAlign: "center",
                                 }}
@@ -622,13 +636,13 @@ function UploadContent() {
             {/* Legend for flagged rows */}
             <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
               {orders.some((o) => o.valueOfProducts >= valueThreshold) && (
-                <p style={{ fontSize: "0.8125rem", color: "#dc2626", margin: 0 }}>
+                <p style={{ fontSize: "0.8125rem", color: "var(--destructive)", margin: 0 }}>
                   Rows with value &ge; ${valueThreshold} will ship via{" "}
                   <strong>USPS Ground Advantage</strong>.
                 </p>
               )}
               {orders.some((o) => o.itemCount >= cardCountThreshold) && (
-                <p style={{ fontSize: "0.8125rem", color: "#dc2626", margin: 0 }}>
+                <p style={{ fontSize: "0.8125rem", color: "var(--destructive)", margin: 0 }}>
                   Rows with {cardCountThreshold}+ items will be marked{" "}
                   <strong>Non-Machinable</strong>.
                 </p>
@@ -651,7 +665,7 @@ function UploadContent() {
                   style={{
                     background:
                       loading || !canGenerate
-                        ? "rgba(0,94,124,0.5)"
+                        ? "color-mix(in srgb, var(--primary-color) 50%, transparent)"
                         : "var(--primary-color)",
                     color: "#ffffff",
                     border: "none",
