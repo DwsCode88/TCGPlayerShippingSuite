@@ -631,5 +631,6 @@ app.post("/stripe/webhook", async (c) => {
   return c.json({ received: true });
 });
 
+export { app };
 export const GET = handle(app);
 export const POST = handle(app);

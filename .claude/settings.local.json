@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)",
+      "Bash(node:*)",
+      "Bash(npx jest:*)",
+      "Bash(xargs grep:*)",
+      "Bash(npx tsc:*)",
+      "Skill(claude-api)",
+      "Bash(npm rebuild:*)",
+      "Bash(ls:*)",
+      "Bash(python3:*)",
+      "Bash(npm show:*)"
+    ]
+  }
+}

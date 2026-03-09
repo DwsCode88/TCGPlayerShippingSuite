@@ -180,7 +180,7 @@ function UploadContent() {
     }
 
     setGroundLabels(result.groundAdvantage || []);
-    setEnvelopeLabels(result.other || []);
+    setEnvelopeLabels(result.envelopes || []);
     setBatchId(newBatchId);
     setLoading(false);
     setLabelsGenerated(true);
