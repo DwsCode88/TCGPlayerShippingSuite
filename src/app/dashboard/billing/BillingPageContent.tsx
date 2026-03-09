@@ -13,6 +13,11 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
+import {
+  Progress,
+  ProgressTrack,
+  ProgressIndicator,
+} from "@/components/ui/progress";
 
 export default function BillingPageContent() {
   const [user, loading] = useAuthState(auth);
@@ -61,49 +66,76 @@ export default function BillingPageContent() {
 
   if (loading || !user) return null;
 
-  const usageText =
-    plan === "Free"
-      ? `${usage} / 10 labels used this month`
-      : `${usage} labels used (Unlimited plan)`;
+  const isPro = plan === "Pro";
+  const planName = plan;
+  const usedLabels = usage;
+  const limitLabels = 10;
+  const progressValue = isPro ? 100 : Math.min((usedLabels / limitLabels) * 100, 100);
 
   return (
     <SidebarLayout>
-      <div className="max-w-4xl mx-auto py-10 px-4 text-white">
-        <h1 className="text-2xl font-bold mb-6">🧾 Billing & Usage</h1>
-
+      <div className="max-w-lg">
         {showSuccess && (
           <div className="bg-green-600 text-white p-4 rounded shadow mb-6">
-            ✅ Thank you! Your Pro subscription is now active.
+            Thank you! Your Pro subscription is now active.
           </div>
         )}
 
-        <div className="bg-white text-black p-6 rounded shadow space-y-4">
-          <div>
-            <p className="text-sm text-gray-500">Your Plan</p>
-            <p className="text-xl font-semibold">
-              {plan === "Pro" ? "✅ Pro Plan Active" : "Free"}
-            </p>
+        {/* Dark card */}
+        <div className="rounded-xl overflow-hidden" style={{ background: "var(--deepest)" }}>
+          {/* Header */}
+          <div className="px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div
+              className="text-[11px] font-semibold uppercase tracking-widest mb-1"
+              style={{ color: "rgba(255,255,255,0.45)" }}
+            >
+              Current Plan
+            </div>
+            <div className="text-xl font-bold" style={{ color: "var(--active-color)" }}>
+              {planName}
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Label Usage</p>
-            <p className="text-xl font-semibold">{usageText}</p>
+
+          {/* Body - white background */}
+          <div className="bg-white px-6 py-5">
+            {/* Usage section */}
+            <div className="mb-4">
+              <div className="flex justify-between text-[13px] mb-2">
+                <span style={{ color: "var(--muted-foreground)" }}>Labels used this month</span>
+                <span className="font-semibold">
+                  {isPro ? `${usedLabels} / ∞` : `${usedLabels} / ${limitLabels}`}
+                </span>
+              </div>
+              <Progress value={progressValue} className="h-2">
+                <ProgressTrack className="h-2">
+                  <ProgressIndicator
+                    style={{ backgroundColor: "var(--active-color)" }}
+                  />
+                </ProgressTrack>
+              </Progress>
+            </div>
+
+            {/* Upgrade CTA - only if not pro */}
+            {!isPro && (
+              <form method="POST" action="/api/stripe/create-customer">
+                <input type="hidden" name="uid" value={user.uid} />
+                <input type="hidden" name="email" value={user.email || ""} />
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-lg text-[13.5px] font-semibold text-white mt-2"
+                  style={{ background: "var(--primary-color)" }}
+                >
+                  Upgrade to Pro ($12.99/mo)
+                </button>
+              </form>
+            )}
+            {isPro && (
+              <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+                You have unlimited access on the Pro plan.
+              </p>
+            )}
           </div>
         </div>
-
-        {plan === "Free" && (
-          <div className="mt-8">
-            <form method="POST" action="/api/stripe/create-customer">
-              <input type="hidden" name="uid" value={user.uid} />
-              <input type="hidden" name="email" value={user.email || ""} />
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded font-semibold"
-              >
-                🚀 Upgrade to Pro ($12.99/mo)
-              </button>
-            </form>
-          </div>
-        )}
       </div>
     </SidebarLayout>
   );
