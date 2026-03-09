@@ -536,19 +536,6 @@ function UploadContent() {
                           </select>
                         </td>
 
-                        {/* Est. Cost */}
-                        <td
-                          style={{
-                            padding: "0.5rem 0.75rem",
-                            whiteSpace: "nowrap",
-                            color: "var(--muted-foreground)",
-                          }}
-                        >
-                          {"rate" in o && typeof (o as ParsedRow & { rate?: number }).rate === "number"
-                            ? `$${((o as ParsedRow & { rate: number }).rate).toFixed(2)}`
-                            : "—"}
-                        </td>
-
                         {/* Weight */}
                         <td style={{ padding: "0.5rem 0.75rem" }}>
                           {isNonEnvelope ? (
@@ -625,6 +612,19 @@ function UploadContent() {
                               0 / 1 oz
                             </span>
                           )}
+                        </td>
+
+                        {/* Est. Cost */}
+                        <td
+                          style={{
+                            padding: "0.5rem 0.75rem",
+                            whiteSpace: "nowrap",
+                            color: "var(--muted-foreground)",
+                          }}
+                        >
+                          {"rate" in o && typeof (o as ParsedRow & { rate?: number }).rate === "number"
+                            ? `$${((o as ParsedRow & { rate: number }).rate).toFixed(2)}`
+                            : "—"}
                         </td>
                       </tr>
                     );
