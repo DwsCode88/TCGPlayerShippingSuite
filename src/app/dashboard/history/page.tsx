@@ -15,6 +15,18 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/SidebarLayout";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 type OrderRecord = {
   batchId: string;
@@ -93,11 +105,6 @@ export default function BatchHistoryPage() {
   }, [user]);
 
   const handleArchive = async (batchId: string) => {
-    const confirmed = confirm(
-      "Archive this batch? It will be hidden from history but not deleted."
-    );
-    if (!confirmed) return;
-
     await updateDoc(doc(db, "batches", batchId), { archived: true });
     setBatches((prev) => prev.filter((b) => b.batchId !== batchId));
   };
@@ -106,58 +113,151 @@ export default function BatchHistoryPage() {
 
   return (
     <SidebarLayout>
-      <div className="max-w-5xl mx-auto p-6 text-white">
-        <h1 className="text-2xl font-bold mb-4">📚 Batch History</h1>
-
-        <div className="mb-4 text-right">
+      <div className="max-w-5xl mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1
+            className="text-[11px] font-semibold uppercase tracking-widest"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Batch History
+          </h1>
           <a
             href="/api/export-batches"
-            className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+            className="text-[12px] px-3 py-1.5 rounded border font-medium transition-colors"
+            style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
           >
-            📤 Download Full Report (CSV)
+            Download Full Report (CSV)
           </a>
         </div>
 
         {batches.length === 0 ? (
-          <p>No batches found.</p>
+          <p style={{ color: "var(--muted-foreground)" }} className="text-sm">
+            No batches found.
+          </p>
         ) : (
-          <ul className="space-y-4">
-            {batches.map((batch) => (
-              <li
-                key={batch.batchId}
-                className="border border-white/20 p-4 rounded shadow-sm flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center bg-gray-800"
-              >
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-white">
-                    {batch.batchName}
-                  </h2>
-                  <p className="text-sm text-gray-300 mb-1">
-                    {batch.orderCount} order{batch.orderCount > 1 ? "s" : ""}
-                  </p>
-                  {batch.notes && (
-                    <p className="text-xs text-gray-400 italic">
-                      📝 {batch.notes}
-                    </p>
+          <div
+            className="border rounded-lg overflow-hidden"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <table className="w-full border-collapse">
+              <thead>
+                <tr style={{ background: "var(--stripe)" }}>
+                  {["Batch Name", "Orders", "Created", "Status", "Notes", ""].map(
+                    (header) => (
+                      <th
+                        key={header}
+                        className="px-3.5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide border-b"
+                        style={{
+                          color: "var(--muted-foreground)",
+                          borderColor: "var(--border)",
+                        }}
+                      >
+                        {header}
+                      </th>
+                    )
                   )}
-                </div>
-
-                <div className="flex gap-3 mt-2 sm:mt-0">
-                  <Link
-                    href={`/dashboard/batch/${batch.batchId}`}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                </tr>
+              </thead>
+              <tbody>
+                {batches.map((batch, i) => (
+                  <tr
+                    key={batch.batchId}
+                    style={{
+                      background: i % 2 === 0 ? "#ffffff" : "var(--stripe)",
+                    }}
                   >
-                    View Batch
-                  </Link>
-                  <button
-                    onClick={() => handleArchive(batch.batchId)}
-                    className="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700 text-sm"
-                  >
-                    Archive
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                    <td
+                      className="px-3.5 py-2.5 border-b text-[13px] font-medium"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <Link
+                        href={`/dashboard/batch/${batch.batchId}`}
+                        className="hover:underline"
+                        style={{ color: "var(--primary-color)" }}
+                      >
+                        {batch.batchName}
+                      </Link>
+                    </td>
+                    <td
+                      className="px-3.5 py-2.5 border-b text-[13px]"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      {batch.orderCount} order{batch.orderCount !== 1 ? "s" : ""}
+                    </td>
+                    <td
+                      className="px-3.5 py-2.5 border-b text-[13px]"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      {batch.createdAt
+                        ? new Date(batch.createdAt).toLocaleDateString()
+                        : "—"}
+                    </td>
+                    <td
+                      className="px-3.5 py-2.5 border-b"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <Badge
+                        variant={batch.archived ? "secondary" : "default"}
+                        className="text-[11px]"
+                      >
+                        {batch.archived ? "Archived" : "Active"}
+                      </Badge>
+                    </td>
+                    <td
+                      className="px-3.5 py-2.5 border-b text-[12px] italic"
+                      style={{
+                        borderColor: "var(--border)",
+                        color: "var(--muted-foreground)",
+                      }}
+                    >
+                      {batch.notes || "—"}
+                    </td>
+                    <td
+                      className="px-3.5 py-2.5 border-b"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            className="text-[12px] px-3 py-1.5 rounded border font-medium transition-colors"
+                            style={{
+                              borderColor: "var(--border)",
+                              color: "var(--muted-foreground)",
+                            }}
+                          >
+                            Archive
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Archive this batch?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will archive &ldquo;{batch.batchName}&rdquo;. You can
+                              still access it from History.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleArchive(batch.batchId)}
+                              style={{
+                                background: "var(--destructive)",
+                                color: "white",
+                              }}
+                            >
+                              Archive Batch
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </SidebarLayout>
