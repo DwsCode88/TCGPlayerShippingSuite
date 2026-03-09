@@ -10,7 +10,11 @@ function getApp(): admin.app.App {
   }
 
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not set");
+  if (!raw || raw === "dummy") {
+    // During build or local dev without real credentials, init without cert.
+    // API routes will fail at runtime if actually called without credentials.
+    return admin.initializeApp({ projectId: "tcgplayershipsite" });
+  }
 
   const serviceAccount = JSON.parse(
     Buffer.from(raw, "base64").toString("utf-8")
