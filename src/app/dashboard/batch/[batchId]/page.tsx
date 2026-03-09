@@ -158,22 +158,23 @@ export default function BatchSummaryPage() {
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-6 flex justify-between items-start flex-wrap gap-2">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+            <h1 className="text-3xl font-bold mb-1" style={{ color: "var(--foreground)" }}>
               📦 Batch Summary
             </h1>
-            <p className="text-gray-600">
+            <p style={{ color: "var(--muted-foreground)" }}>
               Batch: <strong>{batchName}</strong>
             </p>
-            <p className="text-sm text-gray-500">Created: {createdDate}</p>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Created: {createdDate}</p>
             {archived && (
-              <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded">
+              <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded" style={{ background: "rgba(220,38,38,0.15)", color: "var(--destructive)" }}>
                 ARCHIVED
               </span>
             )}
           </div>
           <Link
             href="/dashboard/history"
-            className="text-blue-600 hover:underline text-sm mt-1"
+            className="hover:underline text-sm mt-1"
+            style={{ color: "var(--primary-color)" }}
           >
             ← Back to History
           </Link>
@@ -182,7 +183,8 @@ export default function BatchSummaryPage() {
         <div className="mb-6">
           <label
             htmlFor="notes"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium"
+            style={{ color: "var(--muted-foreground)" }}
           >
             📝 Batch Notes
           </label>
@@ -198,15 +200,15 @@ export default function BatchSummaryPage() {
             className="mt-1 w-full border p-2 rounded text-sm"
             placeholder="Add notes about this batch (auto-saved)"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
             🧠 Notes auto-save while typing...
           </p>
         </div>
 
         {loading ? (
-          <p className="text-center text-gray-500">Loading...</p>
+          <p className="text-center" style={{ color: "var(--muted-foreground)" }}>Loading...</p>
         ) : orders.length === 0 ? (
-          <p className="text-center text-gray-500">
+          <p className="text-center" style={{ color: "var(--muted-foreground)" }}>
             No orders found for this batch.
           </p>
         ) : (
@@ -276,7 +278,7 @@ export default function BatchSummaryPage() {
                 onClick={handleDownloadCSV}
                 style={{
                   background: "transparent",
-                  color: "#6b7280",
+                  color: "var(--muted-foreground)",
                   border: "1.5px solid var(--border)",
                   borderRadius: 6,
                   padding: "7px 16px",
@@ -296,18 +298,18 @@ export default function BatchSummaryPage() {
               <table className="min-w-full text-sm" style={{ borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Order #</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Name</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Tracking</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Type</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Sleeve</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Loader</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Envelope</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Shield</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Postage</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Total</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Notes</th>
-                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Label</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Order #</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Name</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Tracking</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Type</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Sleeve</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Loader</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Envelope</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Shield</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Postage</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Total</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Notes</th>
+                    <th className="p-3 text-left" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "var(--muted-foreground)", letterSpacing: "0.05em" }}>Label</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -321,7 +323,7 @@ export default function BatchSummaryPage() {
                     >
                       <td className="p-3">{o.orderNumber}</td>
                       <td className="p-3">{o.toName}</td>
-                      <td className="p-3 text-xs" style={{ color: "#6b7280" }}>
+                      <td className="p-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
                         {o.trackingCode}
                         {o.trackingUrl && (
                           <div>
@@ -329,7 +331,7 @@ export default function BatchSummaryPage() {
                               href={o.trackingUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-500 underline"
+                              style={{ color: "var(--primary-color)", textDecoration: "underline" }}
                             >
                               Track Package
                             </a>
@@ -377,7 +379,7 @@ export default function BatchSummaryPage() {
                       <td className="p-3 font-semibold">
                         ${o.totalCost?.toFixed(2) || "0.00"}
                       </td>
-                      <td className="p-3 text-xs" style={{ color: "#6b7280" }}>
+                      <td className="p-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
                         {o.notes || ""}
                       </td>
                       <td className="p-3">
