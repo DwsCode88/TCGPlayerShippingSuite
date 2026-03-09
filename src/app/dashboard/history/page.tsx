@@ -163,7 +163,7 @@ export default function BatchHistoryPage() {
                   <tr
                     key={batch.batchId}
                     style={{
-                      background: i % 2 === 0 ? "#ffffff" : "var(--stripe)",
+                      background: i % 2 === 0 ? "var(--background)" : "var(--stripe)",
                     }}
                   >
                     <td
@@ -244,7 +244,7 @@ export default function BatchHistoryPage() {
                               onClick={() => handleArchive(batch.batchId)}
                               style={{
                                 background: "var(--destructive)",
-                                color: "white",
+                                color: "var(--destructive-foreground)",
                               }}
                             >
                               Archive Batch
