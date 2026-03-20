@@ -27,7 +27,9 @@
       "Bash(ls /c/Python*/python.exe)",
       "Read(//c/Users/RC/AppData/Local/Programs/Python/**)",
       "Read(//c/ProgramData/**)",
-      "Bash(/c/Users/RC/AppData/Local/Programs/Python/Python314/python.exe:*)"
+      "Bash(/c/Users/RC/AppData/Local/Programs/Python/Python314/python.exe:*)",
+      "Bash(firebase:*)",
+      "Bash(npx firebase:*)"
     ]
   }
 }

@@ -3,11 +3,12 @@
 import {
   useCreateUserWithEmailAndPassword,
   useSignInWithEmailAndPassword,
+  useSignInWithGoogle,
   useAuthState,
 } from "react-firebase-hooks/auth";
 import { auth, db } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { sendEmailVerification, signOut, signInWithEmailAndPassword as firebaseSignIn, createUserWithEmailAndPassword as firebaseCreateUser, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { sendEmailVerification, signOut, signInWithEmailAndPassword as firebaseSignIn, createUserWithEmailAndPassword as firebaseCreateUser } from "firebase/auth";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -39,42 +40,18 @@ function LoginPageInner() {
   const [createUserWithEmailAndPassword] =
     useCreateUserWithEmailAndPassword(auth);
   const [signInWithEmailAndPassword] = useSignInWithEmailAndPassword(auth);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [signInWithGoogle, , googleLoading, googleError] = useSignInWithGoogle(auth);
 
   const [waitingForVerification, setWaitingForVerification] = useState(false);
 
-  // Handle Google redirect result when user returns to the page
+  // Surface Google sign-in errors from the hook
   useEffect(() => {
-    getRedirectResult(auth)
-      .then(async (res) => {
-        if (res?.user) {
-          console.log("[GoogleSignIn] Redirect result received, user:", res.user.uid);
-          const { uid, email, displayName, phoneNumber } = res.user;
-
-          await setDoc(
-            doc(db, "users", uid),
-            {
-              email: email || "",
-              fullName: displayName || "",
-              phone: phoneNumber || "",
-              storeName: "",
-              createdAt: Date.now(),
-            },
-            { merge: true }
-          );
-
-          await setSessionCookie(res.user);
-          toast.success("Signed in with Google");
-          router.push(redirectTo);
-        }
-      })
-      .catch((err: any) => {
-        console.error("[GoogleSignIn] Redirect error:", err?.code, err?.message);
-        if (err?.code && err.code !== "auth/popup-closed-by-user") {
-          toast.error(getAuthErrorMessage(err.code));
-        }
-      });
-  }, []);
+    if (googleError) {
+      console.error("[GoogleSignIn] Hook error:", googleError.code, googleError.message);
+      const msg = getAuthErrorMessage(googleError.code);
+      toast.error(msg);
+    }
+  }, [googleError]);
 
   // Set __session cookie so middleware allows access to protected routes
   const setSessionCookie = async (firebaseUser: typeof user) => {
@@ -204,15 +181,43 @@ function LoginPageInner() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    setGoogleLoading(true);
-    const provider = new GoogleAuthProvider();
-    console.log("[GoogleSignIn] Redirecting to Google sign-in...");
-    signInWithRedirect(auth, provider).catch((err: any) => {
-      console.error("[GoogleSignIn] Redirect failed:", err?.code, err?.message);
-      toast.error(getAuthErrorMessage(err?.code || ""));
-      setGoogleLoading(false);
+  const handleGoogleSignIn = async () => {
+    console.log("[GoogleSignIn] Starting popup sign-in...");
+    console.log("[GoogleSignIn] Auth config:", {
+      authDomain: auth.config.authDomain,
+      apiKey: auth.config.apiKey?.slice(0, 10) + "...",
+      currentDomain: window.location.hostname,
+      emulatorMode: IS_EMULATOR,
     });
+
+    try {
+      const res = await signInWithGoogle();
+      console.log("[GoogleSignIn] Result:", res ? "got user" : "no result (check googleError state)");
+
+      if (res?.user) {
+        const { uid, email, displayName, phoneNumber } = res.user;
+        console.log("[GoogleSignIn] User:", uid, email);
+
+        await setDoc(
+          doc(db, "users", uid),
+          {
+            email: email || "",
+            fullName: displayName || "",
+            phone: phoneNumber || "",
+            storeName: "",
+            createdAt: Date.now(),
+          },
+          { merge: true }
+        );
+
+        await setSessionCookie(res.user);
+        toast.success("Signed in with Google");
+        router.push(redirectTo);
+      }
+    } catch (err: any) {
+      console.error("[GoogleSignIn] Catch error:", err?.code, err?.message, err);
+      toast.error(getAuthErrorMessage(err?.code || ""));
+    }
   };
 
   const handleEmailSignIn = async () => {
