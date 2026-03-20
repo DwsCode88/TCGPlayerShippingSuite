@@ -179,7 +179,18 @@ function LoginPageInner() {
 
   const handleEmailSignIn = async () => {
     try {
-      await signInWithEmailAndPassword(email, password);
+      const res = await signInWithEmailAndPassword(email, password);
+      if (res?.user) {
+        if (!IS_EMULATOR && !res.user.emailVerified) {
+          setWaitingForVerification(true);
+          return;
+        }
+        await setSessionCookie(res.user);
+        toast.success("Signed in successfully");
+        router.push(redirectTo);
+      } else {
+        toast.error("Invalid email or password");
+      }
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || "Sign in failed");
