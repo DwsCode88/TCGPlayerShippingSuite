@@ -29,7 +29,14 @@
       "Read(//c/ProgramData/**)",
       "Bash(/c/Users/RC/AppData/Local/Programs/Python/Python314/python.exe:*)",
       "Bash(firebase:*)",
-      "Bash(npx firebase:*)"
+      "Bash(npx firebase:*)",
+      "mcp__plugin_firebase_firebase__firebase_get_environment",
+      "mcp__plugin_firebase_firebase__firebase_get_sdk_config",
+      "mcp__plugin_firebase_firebase__firebase_update_environment",
+      "mcp__plugin_firebase_firebase__firebase_login",
+      "Bash(npx firebase-tools:*)",
+      "Read(//c/Users/RC/github/TCGPlayerShippingSuite/**)",
+      "Read(//c/Users/RC/**)"
     ]
   }
 }
