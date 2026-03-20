@@ -3,12 +3,11 @@
 import {
   useCreateUserWithEmailAndPassword,
   useSignInWithEmailAndPassword,
-  useSignInWithGoogle,
   useAuthState,
 } from "react-firebase-hooks/auth";
 import { auth, db } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { sendEmailVerification, signOut, signInWithEmailAndPassword as firebaseSignIn, createUserWithEmailAndPassword as firebaseCreateUser } from "firebase/auth";
+import { sendEmailVerification, signOut, signInWithEmailAndPassword as firebaseSignIn, createUserWithEmailAndPassword as firebaseCreateUser, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -40,18 +39,9 @@ function LoginPageInner() {
   const [createUserWithEmailAndPassword] =
     useCreateUserWithEmailAndPassword(auth);
   const [signInWithEmailAndPassword] = useSignInWithEmailAndPassword(auth);
-  const [signInWithGoogle, , googleLoading, googleError] = useSignInWithGoogle(auth);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const [waitingForVerification, setWaitingForVerification] = useState(false);
-
-  // Surface Google sign-in errors from the hook
-  useEffect(() => {
-    if (googleError) {
-      console.error("Google sign-in hook error:", googleError.code, googleError.message);
-      const message = getAuthErrorMessage(googleError.code);
-      toast.error(message);
-    }
-  }, [googleError]);
 
   // Set __session cookie so middleware allows access to protected routes
   const setSessionCookie = async (firebaseUser: typeof user) => {
@@ -182,34 +172,53 @@ function LoginPageInner() {
   };
 
   const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    const provider = new GoogleAuthProvider();
+    console.log("[GoogleSignIn] Starting sign-in with popup...");
+    console.log("[GoogleSignIn] Auth domain:", auth.config.authDomain);
+    console.log("[GoogleSignIn] Current domain:", window.location.hostname);
+
     try {
-      const res = await signInWithGoogle();
-      if (res?.user) {
-        const { uid, email, displayName, phoneNumber } = res.user;
+      const res = await signInWithPopup(auth, provider);
+      console.log("[GoogleSignIn] Popup resolved successfully, user:", res.user.uid);
 
-        await setDoc(
-          doc(db, "users", uid),
-          {
-            email: email || "",
-            fullName: displayName || "",
-            phone: phoneNumber || "",
-            storeName: "", // let user fill this later
-            createdAt: Date.now(),
-          },
-          { merge: true }
-        );
+      const { uid, email, displayName, phoneNumber } = res.user;
 
-        await setSessionCookie(res.user);
-        toast.success("Signed in with Google");
-        router.push(redirectTo);
-      } else {
-        // Hook returned undefined — error is surfaced via googleError useEffect
-        console.warn("Google sign-in returned no user credential");
-      }
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          email: email || "",
+          fullName: displayName || "",
+          phone: phoneNumber || "",
+          storeName: "", // let user fill this later
+          createdAt: Date.now(),
+        },
+        { merge: true }
+      );
+      console.log("[GoogleSignIn] User profile saved to Firestore");
+
+      await setSessionCookie(res.user);
+      console.log("[GoogleSignIn] Session cookie set, redirecting to:", redirectTo);
+      toast.success("Signed in with Google");
+      router.push(redirectTo);
     } catch (err: any) {
-      console.error("Google sign-in catch:", err);
+      console.error("[GoogleSignIn] Error:", JSON.stringify({
+        code: err?.code,
+        message: err?.message,
+        email: err?.customData?.email,
+        credential: err?.credential ? "present" : "none",
+      }, null, 2));
+
       const code = err?.code || "";
-      toast.error(getAuthErrorMessage(code));
+
+      // Don't show error for user-initiated cancellation
+      if (code === "auth/popup-closed-by-user") {
+        toast("Sign-in cancelled", { icon: "info" });
+      } else {
+        toast.error(getAuthErrorMessage(code));
+      }
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
