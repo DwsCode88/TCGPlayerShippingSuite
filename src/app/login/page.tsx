@@ -40,9 +40,18 @@ function LoginPageInner() {
   const [createUserWithEmailAndPassword] =
     useCreateUserWithEmailAndPassword(auth);
   const [signInWithEmailAndPassword] = useSignInWithEmailAndPassword(auth);
-  const [signInWithGoogle] = useSignInWithGoogle(auth);
+  const [signInWithGoogle, , googleLoading, googleError] = useSignInWithGoogle(auth);
 
   const [waitingForVerification, setWaitingForVerification] = useState(false);
+
+  // Surface Google sign-in errors from the hook
+  useEffect(() => {
+    if (googleError) {
+      console.error("Google sign-in hook error:", googleError.code, googleError.message);
+      const message = getAuthErrorMessage(googleError.code);
+      toast.error(message);
+    }
+  }, [googleError]);
 
   // Set __session cookie so middleware allows access to protected routes
   const setSessionCookie = async (firebaseUser: typeof user) => {
@@ -75,6 +84,29 @@ function LoginPageInner() {
     }
     return () => clearInterval(interval);
   }, [waitingForVerification, user]);
+
+  const getAuthErrorMessage = (code: string): string => {
+    switch (code) {
+      case "auth/popup-closed-by-user":
+        return "Sign-in popup was closed before completing. Please try again.";
+      case "auth/cancelled-popup-request":
+        return "Another sign-in popup is already open. Please close it and try again.";
+      case "auth/popup-blocked":
+        return "Sign-in popup was blocked by your browser. Please allow popups for this site.";
+      case "auth/unauthorized-domain":
+        return "This domain is not authorized for Google sign-in. Contact support.";
+      case "auth/internal-error":
+        return "An internal error occurred. Please try again.";
+      case "auth/network-request-failed":
+        return "Network error. Check your internet connection and try again.";
+      case "auth/user-disabled":
+        return "This account has been disabled. Contact support.";
+      case "auth/account-exists-with-different-credential":
+        return "An account already exists with this email using a different sign-in method.";
+      default:
+        return `Sign-in failed (${code}). Please try again.`;
+    }
+  };
 
   const saveUserProfile = async (uid: string) => {
     const userDoc = doc(db, "users", uid);
@@ -168,12 +200,16 @@ function LoginPageInner() {
         );
 
         await setSessionCookie(res.user);
-        toast.success("✅ Signed in with Google");
+        toast.success("Signed in with Google");
         router.push(redirectTo);
+      } else {
+        // Hook returned undefined — error is surfaced via googleError useEffect
+        console.warn("Google sign-in returned no user credential");
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Google sign-in failed");
+    } catch (err: any) {
+      console.error("Google sign-in catch:", err);
+      const code = err?.code || "";
+      toast.error(getAuthErrorMessage(code));
     }
   };
 
@@ -275,7 +311,8 @@ function LoginPageInner() {
         ) : (
           <button
             onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-md font-semibold text-[13px] transition-colors"
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-md font-semibold text-[13px] transition-colors disabled:opacity-50"
             style={{
               border: "1.5px solid var(--sidebar)",
               color: "var(--sidebar)",
@@ -300,7 +337,7 @@ function LoginPageInner() {
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google
+            {googleLoading ? "Signing in..." : "Sign in with Google"}
           </button>
         )}
 
