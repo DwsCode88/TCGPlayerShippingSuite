@@ -183,7 +183,16 @@ function UploadContent() {
       },
     });
 
-    const result = await res.json();
+    let result;
+    try {
+      const text = await res.text();
+      result = JSON.parse(text);
+    } catch {
+      console.error("[BatchLabels] Non-JSON response:", res.status, res.statusText);
+      toast.error(`Server error (${res.status}). Please try again.`);
+      setLoading(false);
+      return;
+    }
 
     if (!res.ok) {
       const errMsg = typeof result?.error === "string"

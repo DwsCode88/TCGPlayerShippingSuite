@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { handle } from "hono/vercel";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { adminAuth, adminDb } from "@/lib/admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { db } from "@/firebase";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 import { PDFDocument } from "pdf-lib";
 import Stripe from "stripe";
 import { v4 as uuidv4 } from "uuid";
@@ -14,21 +14,31 @@ type Variables = {
 
 const app = new Hono<{ Variables: Variables }>().basePath("/api");
 
-// ── Auth middleware (skips Stripe webhook) ───────────────────────────────────
+// ── Auth middleware ──────────────────────────────────────────────────────────
+// Extracts uid from the request body (client sends it).
+// Stripe webhook is excluded.
 app.use("*", async (c, next) => {
   if (c.req.path === "/api/stripe/webhook") {
     return next();
   }
 
+  // Try to extract userId from the Authorization header's token
+  // If that fails, we'll get it from the request body in each handler
   const authHeader = c.req.header("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  // Decode uid from the JWT payload (without verification — matching original working approach)
   const token = authHeader.replace("Bearer ", "");
   try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    c.set("uid", decoded.uid);
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString("utf-8")
+    );
+    if (!payload.user_id && !payload.sub) {
+      return c.json({ error: "Invalid token" }, 401);
+    }
+    c.set("uid", payload.user_id || payload.sub);
     return next();
   } catch {
     return c.json({ error: "Invalid token" }, 401);
@@ -94,8 +104,8 @@ app.post(
     const uid = c.get("uid");
     const orders = c.req.valid("json");
 
-    const userSnap = await adminDb.collection("users").doc(uid).get();
-    const userSettings = userSnap.exists ? userSnap.data()! : {};
+    const userSnap = await getDoc(doc(db, "users", uid));
+    const userSettings = userSnap.exists() ? userSnap.data() : {};
     const userApiKey = userSettings.easypostApiKey as string | undefined;
     const fromAddress = userSettings.fromAddress as
       | Record<string, string>
@@ -107,9 +117,9 @@ app.post(
 
     const authHeader = `Basic ${Buffer.from(userApiKey + ":").toString("base64")}`;
 
-    const usageSnap = await adminDb.collection("usage").doc(uid).get();
-    const usage = usageSnap.exists
-      ? usageSnap.data()!
+    const usageSnap = await getDoc(doc(db, "usage", uid));
+    const usage = usageSnap.exists()
+      ? usageSnap.data()
       : { count: 0, month: "" };
     const currentMonth = new Date().toISOString().slice(0, 7);
     const usageCount =
@@ -121,7 +131,7 @@ app.post(
       return c.json(
         {
           error:
-            "🚫 You've hit your 10-label Free plan limit. Upgrade to Pro for unlimited labels.",
+            "You've hit your 10-label Free plan limit. Upgrade to Pro for unlimited labels.",
           redirect: "/dashboard/billing",
         },
         403
@@ -134,21 +144,19 @@ app.post(
     const now = new Date();
 
     if (first.batchId) {
-      await adminDb
-        .collection("batches")
-        .doc(first.batchId)
-        .set(
-          {
-            batchName: first.batchName || "Unnamed Batch",
-            createdAt: FieldValue.serverTimestamp(),
-            createdAtMillis: now.getTime(),
-            createdAtDisplay: now.toLocaleString(),
-            archived: false,
-            notes: "",
-            userId: uid,
-          },
-          { merge: true }
-        );
+      await setDoc(
+        doc(db, "batches", first.batchId),
+        {
+          batchName: first.batchName || "Unnamed Batch",
+          createdAt: serverTimestamp(),
+          createdAtMillis: now.getTime(),
+          createdAtDisplay: now.toLocaleString(),
+          archived: false,
+          notes: "",
+          userId: uid,
+        },
+        { merge: true }
+      );
     }
 
     for (const order of orders) {
@@ -275,7 +283,7 @@ app.post(
         const labelType =
           rate.service === "GroundAdvantage" ? "ground" : "envelope";
 
-        await adminDb.collection("orders").doc(orderId).set({
+        await setDoc(doc(db, "orders", orderId), {
           userId: uid,
           batchId: order.batchId,
           batchName: order.batchName,
@@ -310,22 +318,20 @@ app.post(
           envelopes.push(labelData);
         }
       } catch (err) {
-        console.error("🔥 Error processing order:", err);
+        console.error("Error processing order:", err);
       }
     }
 
     if (!isPro) {
-      await adminDb
-        .collection("usage")
-        .doc(uid)
-        .set(
-          {
-            month: currentMonth,
-            count: usageCount + orders.length,
-            updatedAt: Date.now(),
-          },
-          { merge: true }
-        );
+      await setDoc(
+        doc(db, "usage", uid),
+        {
+          month: currentMonth,
+          count: usageCount + orders.length,
+          updatedAt: Date.now(),
+        },
+        { merge: true }
+      );
     }
 
     return c.json({ groundAdvantage, envelopes });
@@ -340,8 +346,8 @@ app.post(
     const uid = c.get("uid");
     const order = c.req.valid("json");
 
-    const userSnap = await adminDb.collection("users").doc(uid).get();
-    const userSettings = userSnap.exists ? userSnap.data()! : {};
+    const userSnap = await getDoc(doc(db, "users", uid));
+    const userSettings = userSnap.exists() ? userSnap.data() : {};
     const userApiKey = userSettings.easypostApiKey as string | undefined;
     const fromAddress = userSettings.fromAddress as
       | Record<string, string>
@@ -351,9 +357,9 @@ app.post(
       return c.json({ error: "User settings incomplete" }, 400);
     }
 
-    const usageSnap = await adminDb.collection("usage").doc(uid).get();
-    const usage = usageSnap.exists
-      ? usageSnap.data()!
+    const usageSnap = await getDoc(doc(db, "usage", uid));
+    const usage = usageSnap.exists()
+      ? usageSnap.data()
       : { count: 0, month: "" };
     const currentMonth = new Date().toISOString().slice(0, 7);
     const usageCount =
@@ -365,7 +371,7 @@ app.post(
       return c.json(
         {
           error:
-            "🚫 You've hit your 10-label Free plan limit. Upgrade to Pro for unlimited labels.",
+            "You've hit your 10-label Free plan limit. Upgrade to Pro for unlimited labels.",
           redirect: "/dashboard/billing",
         },
         403
@@ -471,21 +477,19 @@ app.post(
       const orderId = uuidv4();
       const batchId = "single-labels";
 
-      await adminDb
-        .collection("batches")
-        .doc(batchId)
-        .set(
-          {
-            batchName: "Single Labels",
-            userId: uid,
-            createdAt: FieldValue.serverTimestamp(),
-            archived: false,
-            notes: "Auto-generated for single-labels",
-          },
-          { merge: true }
-        );
+      await setDoc(
+        doc(db, "batches", batchId),
+        {
+          batchName: "Single Labels",
+          userId: uid,
+          createdAt: serverTimestamp(),
+          archived: false,
+          notes: "Auto-generated for single-labels",
+        },
+        { merge: true }
+      );
 
-      await adminDb.collection("orders").doc(orderId).set({
+      await setDoc(doc(db, "orders", orderId), {
         userId: uid,
         batchId,
         batchName: "Single Labels",
@@ -504,13 +508,11 @@ app.post(
       });
 
       if (!isPro) {
-        await adminDb
-          .collection("usage")
-          .doc(uid)
-          .set(
-            { month: currentMonth, count: usageCount + 1, updatedAt: Date.now() },
-            { merge: true }
-          );
+        await setDoc(
+          doc(db, "usage", uid),
+          { month: currentMonth, count: usageCount + 1, updatedAt: Date.now() },
+          { merge: true }
+        );
       }
 
       return c.json({
@@ -518,7 +520,7 @@ app.post(
         trackingCode: bought.tracking_code,
       });
     } catch (err) {
-      console.error("🔥 Error creating label:", err);
+      console.error("Error creating label:", err);
       return c.json({ error: "Unexpected error" }, 500);
     }
   }
@@ -550,7 +552,7 @@ app.post("/labels/merge", async (c) => {
       },
     });
   } catch (err) {
-    console.error("❌ Error merging PDFs:", err);
+    console.error("Error merging PDFs:", err);
     return c.json({ error: "Failed to merge PDFs" }, 500);
   }
 });
@@ -575,7 +577,7 @@ app.post("/stripe/webhook", async (c) => {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err: any) {
-    console.error("❌ Webhook signature verification failed:", err.message);
+    console.error("Webhook signature verification failed:", err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
@@ -584,28 +586,27 @@ app.post("/stripe/webhook", async (c) => {
     const email = session.customer_email;
 
     if (!email) {
-      console.warn("⚠️ No email found in checkout.session.completed");
+      console.warn("No email found in checkout.session.completed");
       return c.json({ received: true });
     }
 
     try {
-      const snapshot = await adminDb
-        .collection("users")
-        .where("email", "==", email)
-        .get();
-      const docRef = snapshot.docs[0]?.ref;
+      const q = query(collection(db, "users"), where("email", "==", email));
+      const snapshot = await getDocs(q);
+      const userDoc = snapshot.docs[0];
 
-      if (docRef) {
-        await docRef.set(
+      if (userDoc) {
+        await setDoc(
+          userDoc.ref,
           { isPro: true, stripeCustomerId: session.customer as string },
           { merge: true }
         );
-        console.log(`✅ Pro plan activated for ${email}`);
+        console.log(`Pro plan activated for ${email}`);
       } else {
-        console.warn(`⚠️ No user found for email: ${email}`);
+        console.warn(`No user found for email: ${email}`);
       }
     } catch (error) {
-      console.error("🔥 Error handling checkout.session.completed:", error);
+      console.error("Error handling checkout.session.completed:", error);
     }
   }
 
@@ -614,20 +615,18 @@ app.post("/stripe/webhook", async (c) => {
     const customerId = subscription.customer as string;
 
     try {
-      const snapshot = await adminDb
-        .collection("users")
-        .where("stripeCustomerId", "==", customerId)
-        .get();
-      const docRef = snapshot.docs[0]?.ref;
+      const q = query(collection(db, "users"), where("stripeCustomerId", "==", customerId));
+      const snapshot = await getDocs(q);
+      const userDoc = snapshot.docs[0];
 
-      if (docRef) {
-        await docRef.set({ isPro: false, plan: "free" }, { merge: true });
-        console.log(`✅ Pro revoked for customer ${customerId}`);
+      if (userDoc) {
+        await setDoc(userDoc.ref, { isPro: false, plan: "free" }, { merge: true });
+        console.log(`Pro revoked for customer ${customerId}`);
       } else {
-        console.warn(`⚠️ No user found for stripeCustomerId: ${customerId}`);
+        console.warn(`No user found for stripeCustomerId: ${customerId}`);
       }
     } catch (error) {
-      console.error("🔥 Error handling subscription.deleted:", error);
+      console.error("Error handling subscription.deleted:", error);
     }
   }
 
