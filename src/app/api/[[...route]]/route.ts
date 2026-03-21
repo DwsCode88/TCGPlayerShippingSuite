@@ -75,7 +75,7 @@ const orderSchema = z.object({
   shippingShield: z.boolean().optional(),
   nonMachinable: z.boolean().optional(),
   weight: z.number().optional(),
-  selectedPackage: packageSchema.optional(),
+  selectedPackage: packageSchema.nullable().optional(),
   notes: z.string().optional(),
 });
 
@@ -83,7 +83,7 @@ const singleLabelSchema = z.object({
   customAddress: addressSchema,
   orderNumber: z.string().optional(),
   nonMachinable: z.boolean().optional(),
-  selectedPackage: packageSchema.optional(),
+  selectedPackage: packageSchema.nullable().optional(),
 });
 
 // ── POST /api/labels/batch ───────────────────────────────────────────────────

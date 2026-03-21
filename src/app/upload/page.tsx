@@ -162,12 +162,16 @@ function UploadContent() {
 
     const newBatchId = uuidv4();
     const batchName = `Upload – ${new Date().toLocaleString()}`;
-    const enriched = orders.map((o) => ({
-      ...o,
-      userId: user.uid,
-      batchId: newBatchId,
-      batchName,
-    }));
+    const enriched = orders.map((o) => {
+      const { rowPackage, weightLb, weightOz, selectedPackage, ...rest } = o;
+      return {
+        ...rest,
+        ...(selectedPackage ? { selectedPackage } : {}),
+        userId: user.uid,
+        batchId: newBatchId,
+        batchName,
+      };
+    });
 
     const token = await user.getIdToken();
     const res = await fetch("/api/labels/batch", {
@@ -182,11 +186,14 @@ function UploadContent() {
     const result = await res.json();
 
     if (!res.ok) {
+      const errMsg = typeof result?.error === "string"
+        ? result.error
+        : result?.error?.message || "Something went wrong.";
       if (res.status === 403 && result?.redirect) {
-        toast.error(result.error || "Free plan limit reached.");
+        toast.error(errMsg);
         router.push(result.redirect);
       } else {
-        toast.error(result.error || "Something went wrong.");
+        toast.error(errMsg);
       }
       setLoading(false);
       return;
