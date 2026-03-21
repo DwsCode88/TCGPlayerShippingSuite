@@ -36,7 +36,8 @@
       "mcp__plugin_firebase_firebase__firebase_login",
       "Bash(npx firebase-tools:*)",
       "Read(//c/Users/RC/github/TCGPlayerShippingSuite/**)",
-      "Read(//c/Users/RC/**)"
+      "Read(//c/Users/RC/**)",
+      "Bash(npm ls:*)"
     ]
   }
 }

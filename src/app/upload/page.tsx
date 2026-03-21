@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/firebase";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import Papa from "papaparse";
 import { fetchUserSettings } from "@/lib/userSettings";
 import { Loader2, UploadCloud } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -101,33 +102,36 @@ function UploadContent() {
     setPackageTypes(packages);
 
     const text = await file.text();
-    const lines = text.split("\n").filter(Boolean);
-    const headers = lines[0].split(",");
+    const result = Papa.parse<Record<string, string>>(text, {
+      header: true,
+      skipEmptyLines: true,
+    });
 
-    const getIndex = (key: string) =>
-      headers.findIndex((h) =>
-        h.trim().toLowerCase().includes(key.toLowerCase())
-      );
+    if (result.errors.length > 0) {
+      console.error("[CSV Parse] Errors:", result.errors);
+      toast.error("Failed to parse CSV. Check the file format.");
+      return;
+    }
 
-    const parsed: ParsedRow[] = lines.slice(1).map((line) => {
-      const values = line.split(",").map((v) => v.replace(/^"|"$/g, "").trim());
-      const isEnvelope =
-        parseFloat(values[getIndex("Value Of Products")]) <= threshold;
+    const headers = result.meta.fields || [];
+    const getHeader = (key: string) =>
+      headers.find((h) => h.trim().toLowerCase().includes(key.toLowerCase())) || "";
+
+    const parsed: ParsedRow[] = result.data.map((row) => {
+      const val = (key: string) => (row[getHeader(key)] ?? "").trim();
+      const isEnvelope = parseFloat(val("Value Of Products")) <= threshold;
       return {
-        name: `${values[getIndex("FirstName")] ?? ""} ${
-          values[getIndex("LastName")] ?? ""
-        }`.trim(),
-        address1: values[getIndex("Address1")],
-        address2: values[getIndex("Address2")],
-        city: values[getIndex("City")],
-        state: values[getIndex("State")],
-        zip: values[getIndex("PostalCode")],
-        weight: parseFloat(values[getIndex("Product Weight")]) || 1,
-        orderNumber: values[getIndex("Order #")],
-        valueOfProducts: parseFloat(values[getIndex("Value Of Products")]) || 0,
-        itemCount: parseInt(values[getIndex("Item Count")]) || 0,
-        nonMachinable:
-          parseInt(values[getIndex("Item Count")]) >= thresholdFromSettings,
+        name: `${val("FirstName")} ${val("LastName")}`.trim(),
+        address1: val("Address1"),
+        address2: val("Address2"),
+        city: val("City"),
+        state: val("State"),
+        zip: val("PostalCode"),
+        weight: parseFloat(val("Product Weight")) || 1,
+        orderNumber: val("Order #"),
+        valueOfProducts: parseFloat(val("Value Of Products")) || 0,
+        itemCount: parseInt(val("Item Count")) || 0,
+        nonMachinable: parseInt(val("Item Count")) >= thresholdFromSettings,
         shippingShield: false,
         usePennySleeve: true,
         useTopLoader: false,
